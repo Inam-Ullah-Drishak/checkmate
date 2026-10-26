@@ -1,0 +1,245 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   TIER 1 — PRIMITIVES  (`--raw-*`)
+   Raw literal values. The only tier allowed to contain a hex/px/ms literal.
+   Never referenced in markup, never bound into @theme. Rename freely.
+   Grammar: --raw-<category>-<name>[-<shade>]
+   See obsidian/frontend/design-system.md → "Token naming convention".
+   --------------------------------------------------------------------------- */
+:root {
+  --raw-color-white: #ffffff;
+  --raw-color-neutral-100: #ededed;
+  --raw-color-neutral-900: #171717;
+  --raw-color-neutral-950: #0a0a0a;
+
+  /* Brand blue. `600` is the page background; `500` and `700` are the crest and
+     trough of the pixel-wave field drawn over it, deliberately close together so
+     the waves read as a texture rather than a pattern. */
+  --raw-color-brand-500: #0f5ddf;
+  --raw-color-brand-600: #004ac7;
+  --raw-color-brand-700: #003a9e;
+
+  /* Ink on the white surfaces (the contact pill, the CTA bar). */
+  --raw-color-ink-900: #061436;
+  /* Hairline rules that draw the layout grid over the scene. */
+  --raw-color-rule: rgba(255, 255, 255, 0.16);
+  /* The top bar sits on a barely-there lighter wash. */
+  --raw-color-veil: rgba(255, 255, 255, 0.06);
+
+  /* Type scale, measured off the Figma frame at its 1440 base width. The
+     adaptive grid keeps 1rem = 16px there, so design px ÷ 16 = rem and the
+     whole layout scales proportionally below it. */
+  --raw-text-display: 3rem; /* 48px */
+  /* 80%. Tighter than the Figma frame's 51px (1.0625) — a deliberate departure,
+     applied at every breakpoint so the display face sets the same way whatever
+     size it is at. */
+  --raw-text-display-leading: 0.8;
+  /* Double, for large desktops only. It fits there and nowhere else: the
+     adaptive grid switches to a 1920 base above 1440, which shrinks the rem
+     against a column that keeps growing, leaving ~2.2x headroom. Below that
+     breakpoint the headline already fills its column. */
+  --raw-text-display-wide: 6rem; /* 96px */
+  --raw-text-body: 1rem; /* 16px */
+  --raw-text-body-leading: 1.1875; /* 19px */
+  --raw-text-logo: 1.125rem; /* 18px */
+  --raw-text-logo-leading: 1.2222; /* 22px */
+  --raw-text-menu: clamp(2.5rem, 11vw, 4rem); /* mobile menu links */
+
+  /* Layout metrics from the same frame. Only the values that are not already on
+     Tailwind's 4px scale need to live here. */
+  --raw-space-shell: 1.25rem; /* 20px — outer frame inset */
+  /* 30px. The design measures content at x=50 from the frame edge, and the
+     shell border sits at x=20, so the padding *inside* the shell is 30. Same
+     value gutters every cell: headline, copy, and each stat. */
+  --raw-space-gutter: 1.875rem;
+  --raw-size-topbar: 3.4375rem; /* 55px */
+  --raw-size-action: 3.1875rem; /* 51px — CTA bar height */
+  --raw-size-action-icon: 2.6875rem; /* 43px — CTA arrow box */
+  --raw-size-marker: 0.1875rem; /* 3px — the dot before the CTA label */
+  --raw-size-contact: 11.8125rem; /* 189px — contact pill */
+
+  --raw-duration-fast: 150ms;
+  --raw-duration-normal: 250ms;
+}
+
+/* ---------------------------------------------------------------------------
+   TIER 2 — SEMANTIC  (role names, no namespace prefix)
+   Purpose, not appearance. Always `var(--raw-*)` — never a literal.
+   This is the themeable layer: dark mode overrides happen HERE, which is why
+   these are separate from the @theme bindings below (see the note there).
+   Grammar: --<role>[-<variant>][-<state>]
+   --------------------------------------------------------------------------- */
+:root {
+  /* The scene is a card floating on brand blue. The WebGL backdrop inside the
+     card keeps its own black (lib/scene/chess-defaults.ts) — card and page are
+     meant to read as separate surfaces now, where they used to share one colour.
+     One scheme only; there is no light theme to serve. */
+  --background: var(--raw-color-brand-600);
+  --foreground: var(--raw-color-neutral-100);
+
+  --backdrop-wave-low: var(--raw-color-brand-700);
+  --backdrop-wave-high: var(--raw-color-brand-500);
+  /* The mobile menu's ground — a step deeper than the page, so the curtain
+     reads as a layer arriving over it. */
+  --menu-ground: var(--raw-color-brand-700);
+
+  --surface-invert: var(--raw-color-white);
+  --ink: var(--raw-color-ink-900);
+  --rule: var(--raw-color-rule);
+  --veil: var(--raw-color-veil);
+
+  --display: var(--raw-text-display);
+  --display-leading: var(--raw-text-display-leading);
+  --display-wide: var(--raw-text-display-wide);
+  --body: var(--raw-text-body);
+  --body-leading: var(--raw-text-body-leading);
+  --logo: var(--raw-text-logo);
+  --logo-leading: var(--raw-text-logo-leading);
+  --menu: var(--raw-text-menu);
+
+  --shell-inset: var(--raw-space-shell);
+  --shell-gutter: var(--raw-space-gutter);
+  --topbar: var(--raw-size-topbar);
+  --action: var(--raw-size-action);
+  --action-icon: var(--raw-size-action-icon);
+  --marker: var(--raw-size-marker);
+  --contact: var(--raw-size-contact);
+
+  --duration-fast: var(--raw-duration-fast);
+  --duration-normal: var(--raw-duration-normal);
+}
+
+/* ---------------------------------------------------------------------------
+   THEME BINDINGS — map semantic tokens into Tailwind namespaces.
+   Every entry is exactly `--<tw-namespace>-<role>: var(--<role>)`.
+   `inline` is required: it inlines the var() into each utility, so the
+   dark-mode overrides on the Tier 2 tokens above cascade. Binding a literal
+   here instead would freeze the value and break theming.
+
+   Only these namespaces generate utilities (verified against tailwindcss
+   v4.3.3): --color-* --spacing-* --radius-* --leading-* --tracking-* --text-*
+   --font-* --ease-* --breakpoint-* --container-* --shadow-* --blur-* --animate-*
+   NOTE: there is NO --duration-* namespace in v4 — `duration-fast` compiles to
+   nothing. Durations stay Tier 2 only and are used as duration-[var(--duration-fast)].
+   --------------------------------------------------------------------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-backdrop-wave-low: var(--backdrop-wave-low);
+  --color-backdrop-wave-high: var(--backdrop-wave-high);
+  --color-menu-ground: var(--menu-ground);
+
+  --color-surface-invert: var(--surface-invert);
+  --color-ink: var(--ink);
+  --color-rule: var(--rule);
+  --color-veil: var(--veil);
+
+  --text-display: var(--display);
+  --text-display--line-height: var(--display-leading);
+  --text-display-wide: var(--display-wide);
+  --text-display-wide--line-height: var(--display-leading);
+
+  /* 1441px — the first pixel of the adaptive grid's next band, so the extra
+     room the doubled headline needs is already there when the rule applies.
+     A literal, not a `var()`, and it has to be: a media query condition cannot
+     resolve a custom property, so binding it through Tier 2 emits
+     `@media (width >= var(--wide))` and fails to parse. Same forced exception
+     the starter already makes for `--leading-display` and `--ease-entrance`. */
+  --breakpoint-wide: 90.0625rem;
+  --text-body: var(--body);
+  --text-body--line-height: var(--body-leading);
+  --text-logo: var(--logo);
+  --text-logo--line-height: var(--logo-leading);
+  --text-menu: var(--menu);
+  --text-menu--line-height: var(--display-leading);
+
+  --spacing-shell-inset: var(--shell-inset);
+  --spacing-shell-gutter: var(--shell-gutter);
+  --spacing-topbar: var(--topbar);
+  --spacing-action: var(--action);
+  --spacing-action-icon: var(--action-icon);
+  --spacing-marker: var(--marker);
+  --spacing-contact: var(--contact);
+
+  --font-sans: var(--font-general-sans);
+  --font-display: var(--font-jersey);
+
+  /* Leading floor for clipped TextEngine reveals — see
+     obsidian/frontend/text-engine.md → "Alignment & line-height". */
+  --leading-display: 1.1;
+
+  --ease-entrance: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* The consent banner is server-rendered (it paints with the page). Hidden before
+   paint for a visitor who already chose (`consent-flag.ts`) and on the robot
+   form, which has no visitor to ask (D-016). */
+html[data-consent] [data-cookie-banner],
+html:has(meta[name="x-robot-view"]) [data-cookie-banner] {
+  display: none;
+}
+
+/* The robot form (D-016) has no curtain — hidden before its first paint (the
+   root layout renders it before the page's robot marker is known). */
+html:has(meta[name="x-robot-view"]) [data-preloader] {
+  display: none;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* The hero owns its own full-viewport layout, so the starter's flex-centring
+     body (and its `100vw`, which forces a horizontal scrollbar) is gone. */
+  min-height: 100lvh;
+}
+
+@layer base {
+  /* Adaptive scaling grid — scales the root font-size with the viewport so a
+     rem-based layout stays proportional. Each breakpoint divides FONT_BASE
+     (16px) by the design base width its range was laid out at:
+       font-size: 16 * 100 / baseWidth  (vw)
+     Above 1920px the AdaptiveGrid component takes over (scale-up).
+     Keep in sync with src/components/common/grid/grid.config.ts. */
+  html {
+    font-size: 16px;
+  }
+
+  @media (max-width: 1920px) {
+    html {
+      font-size: 0.833333vw; /* 16 * 100 / 1920 */
+    }
+  }
+
+  @media (max-width: 1440px) {
+    html {
+      font-size: 1.111111vw; /* 16 * 100 / 1440 */
+    }
+  }
+
+  @media (max-width: 1024px) {
+    html {
+      font-size: 1.5625vw; /* 16 * 100 / 1024 */
+    }
+  }
+
+  @media (max-width: 640px) {
+    html {
+      font-size: 4.444444vw; /* 16 * 100 / 360 */
+    }
+  }
+}
+
+@layer utilities {
+  /* Keeps a deliberately low-resolution canvas crisp when it is scaled up, so
+     the wave field reads as pixels rather than a blur. */
+  .pixelated {
+    image-rendering: pixelated;
+  }
+}
+
+@layer components {
+  /* The native cursor is never hidden (ADR-0025, owner 2026-10-01): the 3D
+     cursor floats after it instead of replacing it. */
+}
