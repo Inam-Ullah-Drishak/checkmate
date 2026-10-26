@@ -6,8 +6,8 @@
 
 export const fade = "ease-entrance transition-colors duration-[var(--duration-fast)]";
 
-/** A white block: the home page's "Say hello" and "Start a match" treatment. */
-export const solid = `bg-surface-invert text-ink hover:bg-ink hover:text-surface-invert text-body cursor-pointer ${fade}`;
+/** A white block: the home page's "Say hello" and "Start a match" treatment. Pressed, or switched on, it turns dark blue like on hover. */
+export const solid = `bg-surface-invert text-ink hover:bg-ink hover:text-surface-invert active:bg-ink active:text-surface-invert aria-pressed:bg-ink aria-pressed:text-surface-invert text-body cursor-pointer ${fade}`;
 
 /** A block on the page colour, ruled like the stat cells. */
 export const ruled = `border-rule bg-background text-foreground border text-body`;

@@ -34,6 +34,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { BOARD_THEMES } from "@/lib/chess/board-themes";
 import { PIECE_SETS, type Finish, type PieceSetId } from "@/lib/chess/piece-sets";
 import type { Team, ThemeId } from "@/lib/chess/storage";
+import { getDeviceProfile } from "@/lib/scene/device";
 import { disposeChessModel, type ChessModel } from "@/lib/scene/chess-model";
 
 export interface BoardCell {
@@ -61,6 +62,8 @@ export interface BoardScene {
   setLast: (from: string | null, to: string | null) => void;
   setCheck: (square: string | null) => void;
   setHint: (from: string | null, to: string | null) => void;
+  /** The square the keyboard cursor is on, or `null` when it is hidden. */
+  setCursor: (square: string | null) => void;
   setMovable: (on: boolean) => void;
   resetView: () => void;
   dispose: () => void;
@@ -104,7 +107,8 @@ export const createBoardScene = (
   const palette = BOARD_THEMES[theme];
 
   const renderer = new WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Phones get a lower pixel ratio: a 3x screen would draw nine times the pixels for little gain.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, getDeviceProfile().tier === "mobile" ? 1.5 : 2));
   host.appendChild(renderer.domElement);
 
   const scene = new Scene();
@@ -120,6 +124,12 @@ export const createBoardScene = (
   controls.maxDistance = 22;
   controls.maxPolarAngle = Math.PI * 0.48;
   controls.saveState();
+  // The scene is drawn only when something changed, not 60 times a second for a still board.
+  let dirty = true;
+  const invalidate = () => {
+    dirty = true;
+  };
+  controls.addEventListener("change", invalidate);
 
   // Metal only reads as metal when it has something to reflect.
   const pmrem = new PMREMGenerator(renderer);
@@ -185,6 +195,7 @@ export const createBoardScene = (
     last: new Group(),
     check: new Group(),
     hint: new Group(),
+    cursor: new Group(),
   };
   Object.values(layers).forEach((layer) => scene.add(layer));
 
@@ -292,6 +303,7 @@ export const createBoardScene = (
     const { clientWidth: width, clientHeight: height } = host;
     if (!width || !height) return;
     renderer.setSize(width, height);
+    invalidate();
     camera.aspect = width / height;
     // A tall, narrow window (a phone) would crop the sides of the board: widen the view.
     const needed = Math.max(1, 1.1 / camera.aspect);
@@ -304,21 +316,31 @@ export const createBoardScene = (
 
   let frameId = 0;
   let last = performance.now();
-  const animate = (mesh: Mesh, dt: number) => {
+  /** Moves a travelling piece along; says whether it is still on its way. */
+  const animate = (mesh: Mesh, dt: number): boolean => {
     const t = mesh.userData.t as number;
-    if (t >= 1) return;
+    if (t >= 1) return false;
     const next = Math.min(1, t + dt / MOVE_SECONDS);
     mesh.userData.t = next;
     mesh.position.lerpVectors(mesh.userData.from as Vector3, mesh.userData.target as Vector3, ease(next));
     mesh.position.y += Math.sin(Math.PI * next) * (mesh.userData.lift as number);
+    return true;
   };
   const tick = (now: number) => {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    meshes.forEach((mesh) => animate(mesh, dt));
-    graveyard.forEach((mesh) => animate(mesh, dt));
+    let moving = false;
+    meshes.forEach((mesh) => {
+      if (animate(mesh, dt)) moving = true;
+    });
+    graveyard.forEach((mesh) => {
+      if (animate(mesh, dt)) moving = true;
+    });
     controls.update();
-    renderer.render(scene, camera);
+    if (dirty || moving) {
+      dirty = false;
+      renderer.render(scene, camera);
+    }
     frameId = requestAnimationFrame(tick);
   };
   frameId = requestAnimationFrame(tick);
@@ -328,15 +350,18 @@ export const createBoardScene = (
   return {
     setModel: (loaded) => {
       model = loaded;
+      invalidate();
     },
 
     reset: (cells) => {
       clearPieces();
       cells.forEach((cell) => spawn(cell.type, cell.color, cell.square));
+      invalidate();
       layers.selection.clear();
       layers.last.clear();
       layers.check.clear();
       layers.hint.clear();
+      layers.cursor.clear();
     },
 
     setInstant: (on) => {
@@ -346,6 +371,7 @@ export const createBoardScene = (
     move: (from, to) => {
       const mesh = meshes.get(from);
       if (!mesh) return;
+      invalidate();
       meshes.delete(from);
       meshes.set(to, mesh);
       const { x, z } = toXZ(to);
@@ -356,6 +382,7 @@ export const createBoardScene = (
     capture: (square) => {
       const mesh = meshes.get(square);
       if (!mesh) return;
+      invalidate();
       meshes.delete(square);
       const owner = mesh.userData.side as Side;
       graveyard.push(mesh);
@@ -376,6 +403,7 @@ export const createBoardScene = (
       const swap = () => {
         remove(square);
         spawn(type, colour, square);
+        invalidate();
       };
       if (instant) return swap();
       // Let the pawn arrive first, then trade it for the new piece.
@@ -387,6 +415,7 @@ export const createBoardScene = (
     },
 
     select: (square, targets) => {
+      invalidate();
       layers.selection.clear();
       if (!square) return;
       layers.selection.add(place(new Mesh(discGeometry(0.48), paint("#4da3ff", 0.7)), square, 0.02));
@@ -395,9 +424,22 @@ export const createBoardScene = (
       );
     },
 
-    setLast: (from, to) => fill(layers.last, [from, to], "#f2d34a", 0.38, 0.01),
-    setCheck: (square) => fill(layers.check, [square], "#ff2d2d", 0.55, 0.015),
-    setHint: (from, to) => fill(layers.hint, [from, to], "#37e0c4", 0.6, 0.025),
+    setLast: (from, to) => {
+      fill(layers.last, [from, to], "#f2d34a", 0.38, 0.01);
+      invalidate();
+    },
+    setCheck: (square) => {
+      fill(layers.check, [square], "#ff2d2d", 0.55, 0.015);
+      invalidate();
+    },
+    setHint: (from, to) => {
+      fill(layers.hint, [from, to], "#37e0c4", 0.6, 0.025);
+      invalidate();
+    },
+    setCursor: (square) => {
+      fill(layers.cursor, [square], "#ffffff", 0.45, 0.03);
+      invalidate();
+    },
 
     setMovable: (on) => {
       controls.enabled = on;

@@ -24,7 +24,6 @@ export const siteConfig = {
   url:
     publicEnv.NEXT_PUBLIC_SITE_URL ??
     (vercelProduction ? `https://${vercelProduction}` : "http://localhost:3000"),
-  twitterHandle: "@checkmate",
   author: "Checkmate",
   /**
    * Browser theme-color (address bar / PWA). The page background, so the chrome

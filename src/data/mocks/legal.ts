@@ -1,15 +1,14 @@
 /**
- * Copy for the privacy policy the cookie banner and its preferences modal link
- * to.
+ * Copy for the privacy policy page.
  *
- * ⚠️ This is generic boilerplate, not legal advice. It exists so the link
- * resolves — a linked page that 404s is a broken promise to the reader, a
- * console error, and a crawl error. Have counsel review and replace it before
- * launch, and keep `updated` honest.
+ * Written for how the site actually works today: everything the game remembers
+ * stays in the visitor's own browser. If the site ever adds analytics, accounts
+ * or a server, this page must change with it, and `LEGAL_UPDATED` with it.
+ * It is a plain-language summary, not legal advice.
  */
 import type { LegalSection } from "@/views/legal/legal-document";
 
-export const LEGAL_UPDATED = "Last updated 30 September 2026";
+export const LEGAL_UPDATED = "Last updated 27 October 2026";
 
 export const privacyPolicy: {
   title: string;
@@ -17,36 +16,37 @@ export const privacyPolicy: {
   sections: readonly LegalSection[];
 } = {
   title: "Privacy Policy",
-  intro: "This policy explains what Checkmate collects when you use this website, why we collect it, and the choices you have.",
+  intro: "Checkmate is a chess game that runs in your browser. This page explains what it remembers about you and where that stays.",
   sections: [
     {
-      heading: "What we collect",
+      heading: "What the game stores",
       body: [
-        "This site does not ask you for personal information. The only thing it stores is your cookie choice, kept in your own browser so we do not ask again.",
-        "Like most websites, our hosting provider records standard technical information with each request — IP address, browser and device type, and the pages requested. This is used to keep the site running and secure.",
+        "To remember your choices and your games, the site saves a small amount of data in your own browser: your settings (board, piece design, difficulty, timer, sound), your win, loss and draw record, your last ten finished games, the puzzles you have solved, and the game you are playing right now.",
+        "This data never leaves your device. It is not sent to us or to anyone else, and we cannot see it.",
       ],
     },
     {
-      heading: "Cookies and analytics",
+      heading: "No accounts, cookies or tracking",
       body: [
-        "The site sets only the cookies needed to remember your cookie choices. Any analytics or marketing cookies are off until you accept them, and you can change your decision at any time through the cookie preferences on this site.",
+        "You do not sign in and you do not give us a name or an email address. The site sets no cookies and runs no analytics, advertising or tracking scripts.",
+        "The computer opponent and the hints run entirely on your device. The chess engine is loaded from this site and no move you make is sent anywhere.",
       ],
     },
     {
-      heading: "How we use it",
+      heading: "What the host can see",
       body: [
-        "We use your cookie choice only to respect it — it is never sent to us or shared. We do not sell your information, and we do not use it for unrelated marketing without asking first.",
+        "Like any website, the company that hosts it records standard technical information with each request, such as your IP address, browser type and the pages you asked for. It is used to keep the site running and secure, and it is deleted after a short time.",
       ],
     },
     {
-      heading: "How long we keep it",
+      heading: "Deleting your data",
       body: [
-        "Your cookie choice stays in your browser until you clear it or change it through the cookie preferences. The hosting provider keeps its technical request logs for a short period, then deletes them.",
+        "Open Settings and choose Reset record, history and puzzles to erase your games and results. To erase everything, including your settings, clear this site's data in your browser. Closing the tab also removes the game in progress.",
       ],
     },
     {
-      heading: "Your rights",
-      body: ["You can ask us for a copy of what we hold about you, ask us to correct it, or ask us to delete it. Use the contact details on this site and we will respond."],
+      heading: "Changes",
+      body: ["If this site ever collects anything more, this page will say so before it does and the date above will change."],
     },
   ],
 };

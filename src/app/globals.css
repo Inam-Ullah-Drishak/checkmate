@@ -173,14 +173,6 @@
   --ease-entrance: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* The consent banner is server-rendered (it paints with the page). Hidden before
-   paint for a visitor who already chose (`consent-flag.ts`) and on the robot
-   form, which has no visitor to ask (D-016). */
-html[data-consent] [data-cookie-banner],
-html:has(meta[name="x-robot-view"]) [data-cookie-banner] {
-  display: none;
-}
-
 /* The robot form (D-016) has no curtain — hidden before its first paint (the
    root layout renders it before the page's robot marker is known). */
 html:has(meta[name="x-robot-view"]) [data-preloader] {

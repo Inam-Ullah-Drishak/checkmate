@@ -217,9 +217,14 @@ export const Game = () => {
             </button>
           ))}
         </nav>
-        <Link href="/" className={`text-body opacity-60 hover:opacity-100 ${fade}`}>
-          Back to home
-        </Link>
+        <span className="flex gap-8">
+          <Link href="/privacy-policy" className={`text-body opacity-60 hover:opacity-100 ${fade}`}>
+            Privacy
+          </Link>
+          <Link href="/" className={`text-body opacity-60 hover:opacity-100 ${fade}`}>
+            Back to home
+          </Link>
+        </span>
       </header>
 
       {tab === "Play" && (

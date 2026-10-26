@@ -28,7 +28,7 @@ export function generateMetadata({
   title = siteConfig.name,
   description = siteConfig.description,
   url = "/",
-  twitterHandle = siteConfig.twitterHandle,
+  twitterHandle,
   author = siteConfig.author,
   siteName = siteConfig.name,
 }: MetadataProps = {}): Metadata {

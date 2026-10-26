@@ -40,6 +40,7 @@ import { loadChessModel } from "@/lib/scene/chess-model";
 
 const OTHER: Record<Side, Side> = { w: "b", b: "w" };
 const PIECE_NAME: Record<string, string> = { q: "Queen", r: "Rook", b: "Bishop", n: "Knight" };
+const PIECE_WORD: Record<PieceSymbol, string> = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
 const VALUE: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
 /** m:ss, rounded up so a clock never shows 0:00 while it still has time. */
@@ -139,6 +140,8 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
   const [soundEnabled, setSoundEnabled] = useState(sound);
   const [showMoves, setShowMoves] = useState(false);
   const [reviewIndex, setReviewIndex] = useState(0);
+  // What the keyboard cursor is on, read out to screen readers.
+  const [cursorLabel, setCursorLabel] = useState("");
 
   const reviewing = Boolean(review);
   const minKeep = side === "b" && !puzzle && !review ? 1 : 0;
@@ -409,6 +412,47 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
       else clearSelection();
     };
 
+    // ---- playing with the keyboard -------------------------------------------
+    // Tab to the board, arrow keys move a cursor (as the board looks to you), Enter or
+    // Space does what a click on that square does, Escape cancels the selection.
+
+    let cursor: Square | null = null;
+    const describeSquare = (at: Square): string => {
+      const piece = game.get(at);
+      return piece ? `${at}: ${names[piece.color]} ${PIECE_WORD[piece.type]}` : `${at}: empty`;
+    };
+    const showCursor = (at: Square | null) => {
+      cursor = at;
+      scene.setCursor(at);
+      setCursorLabel(at ? describeSquare(at) : "");
+    };
+    const onKey = (event: KeyboardEvent) => {
+      const turn: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+      if (turn[event.key]) {
+        event.preventDefault();
+        // From the gold side the board is turned round, so the arrows are too.
+        const flip = side === "b" ? -1 : 1;
+        const from = cursor ?? (side === "w" ? "e2" : "e7");
+        const file = Math.max(0, Math.min(7, "abcdefgh".indexOf(from[0]) + turn[event.key][0] * flip));
+        const rank = Math.max(1, Math.min(8, Number(from[1]) + turn[event.key][1] * flip));
+        showCursor(`${"abcdefgh"[file]}${rank}` as Square);
+      } else if ((event.key === "Enter" || event.key === " ") && cursor) {
+        event.preventDefault();
+        onSquare(cursor);
+        setCursorLabel(`${describeSquare(cursor)}${selected === cursor ? ", selected" : ""}`);
+      } else if (event.key === "Escape") {
+        clearSelection();
+      }
+    };
+    // A mouse click also focuses the board; only keyboard focus should show the cursor.
+    const onFocus = () => {
+      if (el.matches(":focus-visible")) showCursor(cursor ?? (side === "w" ? "e2" : "e7"));
+    };
+    const onBlur = () => showCursor(null);
+    el.addEventListener("keydown", onKey);
+    el.addEventListener("focus", onFocus);
+    el.addEventListener("blur", onBlur);
+
     // ---- starting, resuming, reviewing ---------------------------------------
 
     const replay = (moves: string[]) => {
@@ -553,6 +597,9 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
       window.clearTimeout(noticeTimer);
       window.clearTimeout(hintTimer);
       timers.forEach((id) => window.clearTimeout(id));
+      el.removeEventListener("keydown", onKey);
+      el.removeEventListener("focus", onFocus);
+      el.removeEventListener("blur", onBlur);
       engine.dispose();
       scene.dispose();
       sceneRef.current = null;
@@ -583,7 +630,16 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
 
   return (
     <div className="relative size-full">
-      <div ref={host} className="size-full" />
+      <div
+        ref={host}
+        tabIndex={0}
+        role="application"
+        aria-label="Chess board. Use the arrow keys to move the cursor, Enter or Space to select a square or move, Escape to cancel."
+        className="size-full focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-foreground"
+      />
+      <p className="sr-only" aria-live="polite">
+        {cursorLabel}
+      </p>
 
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center">

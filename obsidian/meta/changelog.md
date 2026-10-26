@@ -1,6 +1,6 @@
 ---
 tags: [meta, changelog]
-updated: 2026-10-01
+updated: 2026-10-27
 ---
 
 # Changelog
@@ -8,6 +8,31 @@ updated: 2026-10-01
 Chronological log of notable changes to the project. Newest first.
 This is a human-curated log — not a mirror of `git log`.
 
+
+## 2026-10-27 — The site becomes Checkmate, a playable chess game
+
+The starter's hero page now leads into a chess game at `/play`. Summary (the full
+progress log is `CLAUDE.md` one folder up; the project overview is `README.md`):
+
+- **Game:** 3D board and pieces (three.js, `lib/chess/board-scene.ts`), rules and
+  move checking from `chess.js`, computer opponent (own engine for easy/medium/hard
+  in `lib/chess/cpu.worker.ts`; Stockfish 19 lite for master/GM and hints), undo,
+  hints, resign, draw offers, move timer that skips a turn, promotion choice,
+  keyboard play, opening names, move list, PGN copy/import, history with replay,
+  stats, puzzles, and an illustrated rules page. Everything is saved in the
+  visitor's browser (`lib/chess/storage.ts`); there is no backend.
+- **Look:** menu and settings in the home page's blue/white style (no boxed
+  panels); 8 board looks and 8 piece designs with picture previews.
+- **Hero:** the pieces are gold (`lib/scene/chess-defaults.ts`); the trailing 3D
+  cursor was removed; the stat tiles show the player's record.
+- **Removed:** the starter's example contact API route, the cookie banner (the
+  site sets no cookies), `HOW_TO_USE.md`. The privacy policy was rewritten for
+  browser-only storage.
+- **Tests:** `npm test` (vitest) checks the puzzles, opening names, the rules
+  diagrams' data, design data and the saving code.
+- **Stale notes:** `frontend/chess-scene.md` still describes a white king and
+  black pieces, and other notes describe the starter's contact form and cookie
+  banner. They are kept for history; trust the code and `README.md`.
 
 ## 2026-10-06 — Full-screen mobile menu (owner review, pipeline D-033)
 
