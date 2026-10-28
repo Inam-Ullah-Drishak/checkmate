@@ -9,6 +9,46 @@ Chronological log of notable changes to the project. Newest first.
 This is a human-curated log — not a mirror of `git log`.
 
 
+## 2026-10-28 — Two cards per row on phones
+
+Settings picture cards (`Picker` in `board-3d/previews.tsx`) and the Rules cards (`game.tsx`) are `grid-cols-2` below `sm`, with a shorter preview (`h-28`), smaller text (`text-xs`) and less padding; wide Rules cards span both columns. The site-theme preview ("Play chess") is also smaller on phones. From `sm` up they are as before.
+
+## 2026-10-28 — Play menu uses the home page's full-screen menu on phones
+
+`board-3d/game.tsx`: below `sm` the tab row is replaced by the burger and the home page's `MobileMenu` (circle curtain, rising links) listing the six tabs, Tutorial and Privacy, with "Back to home" as the bottom pill. `MobileMenu` gained an optional `onSelect(href)` so a page can handle its own links (here `#Tab` switches tab, `#tutorial` starts the guided game) before it falls back to scrolling or `router.push`. From `sm` up the header is unchanged.
+
+## 2026-10-28 — Mobile menu links navigate
+
+`views/home/mobile-menu.tsx` cancelled every link click and only scrolled to a `#hash`, so the `/play…` links (Play, Puzzles, History, Stats, Rules, Settings) did nothing. After the menu closes, a link that is not a `#`/`/#` anchor now goes through `router.push`.
+
+## 2026-10-28 — Home figures smaller on phones
+
+`views/home/stat-grid.tsx`: figure text is `max-sm:text-3xl` (was 48px at every width) and cells have `min-w-0`, so "Medium" no longer overflows its tile.
+
+## 2026-10-28 — Victory animation
+
+`board-3d/victory.tsx`: the result dialog springs in (`Pop`, scale + opacity), and a win or solved puzzle also fires `Fireworks` (six rockets, each rising then bursting into 22 sparks that arc and fade, driven by one looping spring per firework, token colours). It repeats until the dialog closes: every dialog button unmounts it. Drawn in front of the dialog panel (it ignores pointer events, so the buttons still work). The guided tutorial no longer offers "Next puzzle". Skipped under `prefers-reduced-motion`. Spring-only, no CSS keyframes.
+
+## 2026-10-28 — First-time welcome popup and guided tutorial
+
+- Home "Start a match" is now `views/home/start-match.tsx` (client button + `board-3d/welcome.tsx` popup). A first-time player (`isFirstTimePlayer()` in `storage.ts`: no `checkmate:tutorial` flag and no finished games) sees two options; returning players go straight to `/play`. Either choice sets the flag (`markTutorialSeen`), so it never reappears; "Clear all browser data" resets it.
+- **Start Now** → `/play?start=1` starts a match with the saved settings. **Start Guided Tutorial** → `/play?tutorial=1` runs `GUIDED_TUTORIAL` (`lib/chess/puzzles.ts`): a scripted Scholar's mate from the start position, run through the puzzle machinery in `board-3d.tsx` (`showGuide` highlights the expected move and shows a step message; wrong moves are taken back). It ends in checkmate and a Victory dialog.
+- Replaced the earlier 5-slide `tutorial.tsx`; the "Tutorial" link in the `/play` header now starts the guided game. The hero button is a `button` (was a link).
+
+## 2026-10-28 — Winter theme dimmer
+
+Darker page (`--raw-color-brand-600` `#0a3a96`, `-700` `#062a72`), backdrop waves (`winter-top` `#061a45`, `winter-bottom` `#4a74b5`), duller ice button faces and a softer glow in `globals.css`; stage colour in `site-themes.ts` and `themeColor`/manifest background in `site.ts` follow. Other site themes override these variables and are unchanged.
+
+## 2026-10-28 — Starting tutorial
+
+Settings → Your data also has "Clear all browser data" (two-step): `clearAllData()` in `storage.ts` removes every `checkmate:*` key in both stores and reloads, so settings, record, history and the tutorial flag all start over.
+
+`board-3d/tutorial.tsx`: a 5-step modal walkthrough (moving, camera, hints/undo, rules/puzzles). Shown once on the first menu visit (`checkmate:tutorial` in localStorage via `tutorialSeen`/`markTutorialSeen`); reopen with "Tutorial" in the play menu header. Text-only, no board demo.
+
+## 2026-10-28 — Removed the "Glass & smoke" piece design
+
+Deleted the `starlight-nebula` entry from `src/lib/chess/piece-sets.ts` (owner request). A saved old id falls back to Gold & silver.
+
 ## 2026-10-27 — The site becomes Checkmate, a playable chess game
 
 The starter's hero page now leads into a chess game at `/play`. Summary (the full

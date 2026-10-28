@@ -11,8 +11,10 @@
  * 📖 Docs: obsidian/frontend/home-hero.md
  */
 
+import { iceCta } from "@/components/common/board-3d/ui";
 import { Headline } from "@/views/home/headline";
 import { Reveal } from "@/views/home/reveal";
+import { StartMatch } from "@/views/home/start-match";
 
 export interface HeroIntroProps {
   /** Rendered one line per entry, as in the design. */
@@ -22,7 +24,7 @@ export interface HeroIntroProps {
   actionHref: string;
 }
 
-export const HeroIntro = ({ headline, description, action, actionHref }: HeroIntroProps) => (
+export const HeroIntro = ({ headline, description, action }: HeroIntroProps) => (
   <section
     aria-labelledby="hero-headline"
     className="flex flex-col lg:grid lg:grid-rows-[534fr_211fr]"
@@ -39,32 +41,22 @@ export const HeroIntro = ({ headline, description, action, actionHref }: HeroInt
       {/* Comes in from the left, against the copy above it: the two blocks
           arriving on the same vector read as one fade, which is the thing this
           is trying not to be. */}
-      <Reveal
-        tag="a"
-        delay={800}
-        x={-22}
-        y={0}
-        href={actionHref}
-        className="bg-surface-invert text-ink hover:bg-ink hover:text-surface-invert ease-entrance group flex h-action items-center justify-between pr-1 pl-6 transition-colors duration-[var(--duration-fast)]"
-      >
+      <StartMatch className={`${iceCta} group flex h-action w-full cursor-pointer items-center justify-between rounded-full pr-1 pl-6`}>
         <span className="text-body flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="size-marker bg-ink group-hover:bg-surface-invert ease-entrance rounded-full transition-colors duration-[var(--duration-fast)]"
-          />
+          <span aria-hidden="true" className="size-marker bg-ice-ink group-active:bg-ice-top rounded-full" />
           {action}
         </span>
 
-        <span className="bg-background group-hover:bg-surface-invert ease-entrance flex size-action-icon items-center justify-center transition-colors duration-[var(--duration-fast)]">
+        <span className="bg-background flex size-action-icon items-center justify-center rounded-full">
           <svg
             viewBox="0 0 19 19"
             aria-hidden="true"
-            className="text-foreground group-hover:text-ink ease-entrance size-5 fill-none stroke-current stroke-[1.5] transition-colors duration-[var(--duration-fast)]"
+            className="text-foreground size-5 fill-none stroke-current stroke-[1.5]"
           >
             <path d="M6.5 3.5 13 9.5l-6.5 6" strokeLinecap="square" />
           </svg>
         </span>
-      </Reveal>
+      </StartMatch>
     </div>
   </section>
 );

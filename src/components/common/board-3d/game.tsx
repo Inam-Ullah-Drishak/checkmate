@@ -9,16 +9,20 @@
 
 import { Chess } from "chess.js";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Board3D } from "@/components/common/board-3d/board-3d";
-import { BoardPreview, ClockPreview, MovesPreview, Picker, PiecesPreview, PromotionPreview, RuleDiagram, SoundPreview } from "@/components/common/board-3d/previews";
-import { chip, fade, solid, veil } from "@/components/common/board-3d/ui";
+import { SITE_THEMES, SITE_THEME_IDS, applySiteTheme, type SiteThemeId } from "@/lib/site-themes";
+import { PieceLabel, SiteThemePreview, BoardPreview, ClockPreview, MovesPreview, Picker, PiecesPreview, ShapePreview, PromotionPreview, RuleDiagram, SoundPreview } from "@/components/common/board-3d/previews";
+import { chip, fade, iceCta, solid, veil } from "@/components/common/board-3d/ui";
+import { MOBILE_MENU_ID, MenuBars, MobileMenu } from "@/views/home/mobile-menu";
 import { RULES } from "@/data/rules";
 import { BOARD_THEMES } from "@/lib/chess/board-themes";
 import { PIECE_SET_IDS, PIECE_SETS, type PieceSetId } from "@/lib/chess/piece-sets";
-import { PUZZLES, type Puzzle } from "@/lib/chess/puzzles";
+import { SHAPE_IDS, SHAPE_LABEL, type ShapeId } from "@/lib/chess/piece-shapes";
+import { GUIDED_TUTORIAL, PUZZLES, type Puzzle } from "@/lib/chess/puzzles";
 import {
+  clearAllData,
   clearGame,
   LEVELS,
   loadGame,
@@ -43,6 +47,9 @@ import {
 const LEVEL_LABEL: Record<Level, string> = { easy: "Easy", medium: "Medium", hard: "Hard", master: "Master", grandmaster: "GM" };
 const TABS = ["Play", "Puzzles", "History", "Stats", "Rules", "Settings"] as const;
 type Tab = (typeof TABS)[number];
+
+/** What the phone menu lists: every tab, then Tutorial and Privacy. `#…` links are handled here. */
+const MENU_LINKS = [...TABS.map((name) => ({ label: name, href: `#${name}` })), { label: "Tutorial", href: "#tutorial" }, { label: "Privacy", href: "/privacy-policy" }];
 
 type Session =
   | { kind: "play"; level: Level; side: Team; moveSeconds: number; resume?: string[] }
@@ -103,6 +110,19 @@ export const Game = () => {
   const [pgnError, setPgnError] = useState("");
   const [runs, setRuns] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  // Phones: the tabs and links live in the home page's full-screen menu.
+  const [navOpen, setNavOpen] = useState(false);
+  const closeNav = useCallback(() => setNavOpen(false), []);
+  const onMenuSelect = useCallback((href: string) => {
+    const tab = TABS.find((name) => `#${name}` === href);
+    if (tab) setTab(tab);
+    else if (href === "#tutorial") {
+      setRuns((count) => count + 1);
+      setSession({ kind: "puzzle", puzzle: GUIDED_TUTORIAL });
+    } else return false;
+    return true;
+  }, []);
 
   const loadAll = () => {
     setRecord(loadRecord());
@@ -122,9 +142,13 @@ export const Game = () => {
     const linked = TABS.find((name) => name.toLowerCase() === wanted);
     if (linked) setTab(linked);
 
-    const puzzle = saved?.puzzleId ? PUZZLES.find((candidate) => candidate.id === saved.puzzleId) : undefined;
+    const puzzle = saved?.puzzleId ? [...PUZZLES, GUIDED_TUTORIAL].find((candidate) => candidate.id === saved.puzzleId) : undefined;
+    // The home page's welcome popup sends first-time players here with `?start=1` or `?tutorial=1`.
+    const params = new URLSearchParams(window.location.search);
     if (saved && puzzle) setSession({ kind: "puzzle", puzzle, resume: saved.moves });
     else if (saved) setSession({ kind: "play", level: saved.level, side: saved.side ?? "w", moveSeconds: saved.moveSeconds ?? 0, resume: saved.moves });
+    else if (params.has("tutorial")) setSession({ kind: "puzzle", puzzle: GUIDED_TUTORIAL });
+    else if (params.has("start")) setSession({ kind: "play", level: stored.level, side: stored.side, moveSeconds: stored.moveSeconds });
     else setSession(null);
   }, []);
 
@@ -145,12 +169,14 @@ export const Game = () => {
     const next = { ...settings, ...patch };
     setSettings(next);
     saveSettings(next);
+    if (patch.site) applySiteTheme(patch.site);
   };
 
   if (session) {
     const common = {
-      theme: settings.theme,
+      theme: SITE_THEMES[settings.site].board,
       pieces: settings.pieces,
+      shape: settings.shape,
       showLegal: settings.showLegal,
       showLast: settings.showLast,
       autoQueen: settings.autoQueen,
@@ -162,7 +188,8 @@ export const Game = () => {
       return <Board3D key={runs} {...common} level="medium" side={session.side} moveSeconds={0} review={{ moves: session.moves, title: session.title }} />;
     }
     if (session.kind === "puzzle") {
-      const next = PUZZLES[PUZZLES.indexOf(session.puzzle) + 1];
+      const index = PUZZLES.indexOf(session.puzzle);
+      const next = index >= 0 ? PUZZLES[index + 1] : undefined;
       return (
         <Board3D
           key={runs}
@@ -204,20 +231,31 @@ export const Game = () => {
         <Link href="/" className="text-logo">
           Checkmate.
         </Link>
-        <nav aria-label="Menu" className="text-body order-3 flex w-full gap-8 sm:order-none sm:w-auto">
+        <button type="button" aria-expanded={navOpen} aria-controls={MOBILE_MENU_ID} onClick={() => setNavOpen(true)} className={`flex size-topbar items-center justify-center sm:hidden ${fade}`}>
+          <span className="sr-only">Open menu</span>
+          <MenuBars open={navOpen} />
+        </button>
+        <nav
+          id="play-nav"
+          aria-label="Menu"
+          className="text-body order-3 hidden w-full gap-x-5 gap-y-2 sm:order-none sm:flex sm:w-auto sm:flex-wrap sm:gap-8"
+        >
           {TABS.map((name) => (
             <button
               key={name}
               type="button"
               aria-pressed={tab === name}
               onClick={() => setTab(name)}
-              className={`cursor-pointer underline-offset-8 ${fade} ${tab === name ? "underline decoration-2" : "opacity-60 hover:opacity-100"}`}
+              className={`cursor-pointer underline-offset-8 ${fade} ${tab === name ? "underline decoration-2" : "opacity-60"}`}
             >
               {name}
             </button>
           ))}
         </nav>
-        <span className="flex gap-8">
+        <span className="hidden gap-8 sm:flex">
+          <button type="button" onClick={() => start({ kind: "puzzle", puzzle: GUIDED_TUTORIAL })} className={`text-body cursor-pointer opacity-60 hover:opacity-100 ${fade}`}>
+            Tutorial
+          </button>
           <Link href="/privacy-policy" className={`text-body opacity-60 hover:opacity-100 ${fade}`}>
             Privacy
           </Link>
@@ -225,6 +263,15 @@ export const Game = () => {
             Back to home
           </Link>
         </span>
+        <MobileMenu
+          open={navOpen}
+          onClose={closeNav}
+          company="Checkmate."
+          links={MENU_LINKS}
+          contact={{ label: "Back to home", href: "/" }}
+          toggleSelector={`[aria-controls="${MOBILE_MENU_ID}"]`}
+          onSelect={onMenuSelect}
+        />
       </header>
 
       {tab === "Play" && (
@@ -241,14 +288,14 @@ export const Game = () => {
               <Chips label="Your team" options={["w", "b"] as const} value={settings.side} onChange={(side) => update({ side })} show={(id) => PIECE_SETS[settings.pieces].names[id]} />
             </Group>
             <p className="text-body opacity-70">
-              {BOARD_THEMES[settings.theme].label} board, {PIECE_SETS[settings.pieces].label.toLowerCase()}, {settings.moveSeconds ? `${settings.moveSeconds} s per move` : "no move timer"}.{" "}
+              {BOARD_THEMES[SITE_THEMES[settings.site].board].label} board, {PIECE_SETS[settings.pieces].label.toLowerCase()}, {settings.moveSeconds ? `${settings.moveSeconds} s per move` : "no move timer"}.{" "}
               <button type="button" onClick={() => setTab("Settings")} className={`cursor-pointer underline underline-offset-4 ${fade}`}>
                 Change in Settings
               </button>
             </p>
           </section>
 
-          <aside aria-label="Your record" className="bg-foreground/10 text-foreground flex flex-col gap-8 p-8">
+          <aside aria-label="Your record" className="bg-foreground/10 text-foreground flex flex-col gap-8 rounded-3xl p-8 backdrop-blur-md">
             <div className="grid grid-cols-3 gap-4">
               {(
                 [
@@ -269,14 +316,14 @@ export const Game = () => {
             <button
               type="button"
               onClick={() => start({ kind: "play", level: settings.level, side: settings.side, moveSeconds: settings.moveSeconds })}
-              className={`${solid} group flex h-action w-full items-center justify-between pr-1 pl-6`}
+              className={`${iceCta} text-body group flex h-action w-full cursor-pointer items-center justify-between pr-1 pl-6`}
             >
               <span className="flex items-center gap-2">
-                <span aria-hidden="true" className="size-marker bg-ink group-hover:bg-surface-invert rounded-full transition-colors duration-[var(--duration-fast)]" />
+                <span aria-hidden="true" className="size-marker bg-ice-ink group-active:bg-ice-top rounded-full" />
                 Start a match
               </span>
-              <span className="bg-background group-hover:bg-surface-invert flex size-action-icon items-center justify-center transition-colors duration-[var(--duration-fast)]">
-                <svg viewBox="0 0 19 19" aria-hidden="true" className="text-foreground group-hover:text-ink size-5 fill-none stroke-current stroke-[1.5]">
+              <span className="bg-background flex size-action-icon items-center justify-center rounded-full">
+                <svg viewBox="0 0 19 19" aria-hidden="true" className="text-foreground size-5 fill-none stroke-current stroke-[1.5]">
                   <path d="M6.5 3.5 13 9.5l-6.5 6" strokeLinecap="square" />
                 </svg>
               </span>
@@ -367,24 +414,24 @@ export const Game = () => {
               <h3 className="text-logo">{section.title}</h3>
               {section.intro && <p className="text-body max-w-3xl opacity-80">{section.intro}</p>}
               {section.items && (
-                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                   {section.items.map((item) => (
                     <li
                       key={item.name ?? item.text}
-                      className={`${veil} flex flex-col gap-4 p-5 ${item.wide ? "sm:col-span-2 lg:col-span-3 md:flex-row md:items-center md:gap-8" : ""}`}
+                      className={`${veil} flex flex-col gap-3 p-3 sm:gap-4 sm:p-5 ${item.wide ? "col-span-2 lg:col-span-3 md:flex-row md:items-center md:gap-8" : ""}`}
                     >
                       {item.diagram && item.then && (
                         <div className="mx-auto flex w-full max-w-80 items-center gap-2">
                           <div className="min-w-0 flex-1">
                             <RuleDiagram diagram={item.diagram} />
-                            <p className="text-body mt-1 text-center text-xs opacity-60">Before</p>
+                            <p className="mt-1 text-center text-xs opacity-60">Before</p>
                           </div>
                           <span aria-hidden="true" className="text-logo">
                             &rarr;
                           </span>
                           <div className="min-w-0 flex-1">
                             <RuleDiagram diagram={item.then} />
-                            <p className="text-body mt-1 text-center text-xs opacity-60">After</p>
+                            <p className="mt-1 text-center text-xs opacity-60">After</p>
                           </div>
                         </div>
                       )}
@@ -393,7 +440,7 @@ export const Game = () => {
                           <RuleDiagram diagram={item.diagram} />
                         </div>
                       )}
-                      <p className="text-body opacity-90">
+                      <p className="text-xs opacity-90 sm:text-body">
                         {item.name && <strong className="font-bold">{item.name}: </strong>}
                         {item.text}
                       </p>
@@ -412,11 +459,14 @@ export const Game = () => {
             <h2 className="text-display font-display">Settings</h2>
             <p className="text-body mt-3 opacity-70">Saved in this browser. They apply from your next match.</p>
           </div>
-          <Group label="Board">
-            <Picker label="Board" options={THEMES} value={settings.theme} onChange={(theme) => update({ theme })} preview={(id) => <BoardPreview theme={id} />} name={(id) => BOARD_THEMES[id].label} />
+          <Group label="Site theme (colours, background and board)">
+            <Picker label="Site theme" options={SITE_THEME_IDS} value={settings.site} onChange={(site: SiteThemeId) => update({ site })} preview={(id) => <SiteThemePreview theme={id} />} name={(id) => SITE_THEMES[id].label} />
           </Group>
-          <Group label="Piece design">
-            <Picker label="Piece design" options={PIECE_SET_IDS} value={settings.pieces} onChange={(pieces: PieceSetId) => update({ pieces })} preview={(id) => <PiecesPreview set={id} />} name={(id) => PIECE_SETS[id].label} />
+          <Group label="Piece shape">
+            <Picker label="Piece shape" options={SHAPE_IDS} value={settings.shape} onChange={(shape: ShapeId) => update({ shape })} preview={(id) => <ShapePreview shape={id} />} name={(id) => SHAPE_LABEL[id]} />
+          </Group>
+          <Group label="Piece color">
+            <Picker label="Piece color" options={PIECE_SET_IDS} value={settings.pieces} onChange={(pieces: PieceSetId) => update({ pieces })} preview={(id) => <PiecesPreview set={id} />} name={(id) => <PieceLabel set={id} />} />
             <p className="text-body opacity-60">
               Your side is {PIECE_SETS[settings.pieces].names.w}, the computer plays {PIECE_SETS[settings.pieces].names.b} (or the other way round if you choose that team).
             </p>
@@ -449,17 +499,38 @@ export const Game = () => {
                       loadAll();
                       setConfirmReset(false);
                     }}
-                    className={`${solid} h-action px-6`}
+                    className={`${iceCta} text-body h-action cursor-pointer px-6`}
                   >
                     Yes, erase my record and history
                   </button>
-                  <button type="button" onClick={() => setConfirmReset(false)} className={chip(false)}>
+                  <button type="button" onClick={() => setConfirmReset(false)} className={`${iceCta} text-body h-action cursor-pointer px-6`}>
                     Cancel
                   </button>
                 </>
               ) : (
-                <button type="button" onClick={() => setConfirmReset(true)} className={chip(false)}>
+                <button type="button" onClick={() => setConfirmReset(true)} className={`${iceCta} text-body h-action cursor-pointer px-6`}>
                   Reset record, history and puzzles
+                </button>
+              )}
+              {confirmClear ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearAllData();
+                      window.location.reload();
+                    }}
+                    className={`${iceCta} text-body h-action cursor-pointer px-6`}
+                  >
+                    Yes, clear everything and start over
+                  </button>
+                  <button type="button" onClick={() => setConfirmClear(false)} className={`${iceCta} text-body h-action cursor-pointer px-6`}>
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => setConfirmClear(true)} className={`${iceCta} text-body h-action cursor-pointer px-6`}>
+                  Clear all browser data
                 </button>
               )}
             </div>

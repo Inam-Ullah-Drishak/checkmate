@@ -7,6 +7,8 @@
  */
 
 import { PIECE_SET_IDS, type PieceSetId } from "@/lib/chess/piece-sets";
+import { SHAPE_IDS, type ShapeId } from "@/lib/chess/piece-shapes";
+import { SITE_THEME_IDS, type SiteThemeId } from "@/lib/site-themes";
 
 export type { PieceSetId };
 
@@ -16,8 +18,8 @@ export const LEVELS: Level[] = ["easy", "medium", "hard", "master", "grandmaster
 /** The player's team: white is silver, black is gold. */
 export type Team = "w" | "b";
 
-export type ThemeId = "classic" | "wood" | "marble" | "ocean" | "slate" | "rose" | "violet" | "sunset";
-export const THEMES: ThemeId[] = ["classic", "wood", "marble", "ocean", "slate", "rose", "violet", "sunset"];
+export type ThemeId = "classic" | "wood" | "marble" | "ocean" | "slate" | "rose" | "violet" | "sunset" | "cosmos" | "ice" | "blossom" | "sea" | "leaf";
+export const THEMES: ThemeId[] = ["classic", "wood", "marble", "ocean", "slate", "rose", "violet", "sunset", "cosmos", "ice", "blossom", "sea", "leaf"];
 
 export interface Settings {
   level: Level;
@@ -27,6 +29,9 @@ export interface Settings {
   sound: boolean;
   theme: ThemeId;
   pieces: PieceSetId;
+  shape: ShapeId;
+  /** Colour theme of the whole site. */
+  site: SiteThemeId;
   /** Show the dots for where the selected piece can go. */
   showLegal: boolean;
   /** Mark the squares of the last move. */
@@ -82,6 +87,7 @@ const KEYS = {
   games: "checkmate:games",
   puzzles: "checkmate:puzzles",
   game: "checkmate:game",
+  tutorial: "checkmate:tutorial",
 } as const;
 
 type Store = "localStorage" | "sessionStorage";
@@ -114,6 +120,8 @@ export const loadSettings = (): Settings => {
     sound: true,
     theme: "classic",
     pieces: "gold-silver",
+    shape: "classic",
+    site: "blue",
     showLegal: true,
     showLast: true,
     autoQueen: false,
@@ -123,6 +131,8 @@ export const loadSettings = (): Settings => {
   if (!LEVELS.includes(settings.level)) settings.level = "medium";
   if (!THEMES.includes(settings.theme)) settings.theme = "classic";
   if (!PIECE_SET_IDS.includes(settings.pieces)) settings.pieces = "gold-silver";
+  if (!SHAPE_IDS.includes(settings.shape)) settings.shape = "classic";
+  if (!SITE_THEME_IDS.includes(settings.site)) settings.site = "blue";
   return settings;
 };
 export const saveSettings = (settings: Settings): void => write("localStorage", KEYS.settings, settings);
@@ -161,7 +171,29 @@ export const resetProgress = (): void => {
   }
 };
 
-export const loadSolved = (): string[] => read<string[]>("localStorage", KEYS.puzzles) ?? [];
+/** Remove everything this game stored in the browser (settings, record, games, tutorial flag, game in progress). */
+export const clearAllData = (): void => {
+  (["localStorage", "sessionStorage"] as const).forEach((store) => {
+    try {
+      Object.keys(window[store])
+        .filter((key) => key.startsWith("checkmate:"))
+        .forEach((key) => window[store].removeItem(key));
+    } catch {
+      // Storage unavailable: nothing to clear.
+    }
+  });
+};
+
+export const tutorialSeen = (): boolean => read<boolean>("localStorage", KEYS.tutorial) === true;
+export const markTutorialSeen = (): void => write("localStorage", KEYS.tutorial, true);
+
+/** Never chose in the welcome popup and has no finished games: a genuinely new player. */
+export const isFirstTimePlayer = (): boolean => {
+  const { win, loss, draw } = loadRecord();
+  return !tutorialSeen() && win + loss + draw === 0;
+};
+
+export const loadSolved =(): string[] => read<string[]>("localStorage", KEYS.puzzles) ?? [];
 export const markSolved = (id: string): void => {
   const solved = loadSolved();
   if (!solved.includes(id)) write("localStorage", KEYS.puzzles, [...solved, id]);

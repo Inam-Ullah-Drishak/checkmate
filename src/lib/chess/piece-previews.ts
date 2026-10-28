@@ -22,9 +22,14 @@ import {
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { PIECE_SET_IDS, PIECE_SETS, type Finish, type PieceSetId } from "@/lib/chess/piece-sets";
-import { disposeChessModel, loadChessModel } from "@/lib/scene/chess-model";
+import { buildShapeModel, SHAPE_IDS, type ShapeId } from "@/lib/chess/piece-shapes";
+import { disposeChessModel, loadChessModel, type ChessPart } from "@/lib/scene/chess-model";
 
-export type KingImages = Record<PieceSetId, { w: string; b: string }>;
+type Pair = { w: string; b: string };
+export interface KingImages {
+  sets: Record<PieceSetId, Pair>;
+  shapes: Record<ShapeId, Pair>;
+}
 
 const WIDTH = 240;
 const HEIGHT = 300;
@@ -54,9 +59,13 @@ const render = async (): Promise<KingImages> => {
 
   const material = new MeshPhysicalMaterial({ clearcoatRoughness: 0.2 });
   const king = new Mesh(model.king.geometry, material);
-  king.scale.setScalar(KING_HEIGHT / model.king.height);
   king.rotation.y = 0.5;
   scene.add(king);
+  const show = (part: ChessPart) => {
+    king.geometry = part.geometry;
+    king.scale.setScalar(KING_HEIGHT / part.height);
+  };
+  show(model.king);
 
   const paint = ({ color, metalness, roughness, clearcoat }: Finish): string => {
     material.color = new Color(color);
@@ -67,14 +76,26 @@ const render = async (): Promise<KingImages> => {
     return renderer.domElement.toDataURL("image/png");
   };
 
-  const images = Object.fromEntries(PIECE_SET_IDS.map((id) => [id, { w: paint(PIECE_SETS[id].w), b: paint(PIECE_SETS[id].b) }])) as KingImages;
+  const sets = Object.fromEntries(PIECE_SET_IDS.map((id) => [id, { w: paint(PIECE_SETS[id].w), b: paint(PIECE_SETS[id].b) }])) as Record<PieceSetId, Pair>;
+
+  // Each shape's king, in the default silver and gold.
+  const { w, b } = PIECE_SETS["gold-silver"];
+  const shapes = Object.fromEntries(
+    SHAPE_IDS.map((id) => {
+      const built = buildShapeModel(id, model).king;
+      show(built);
+      const pair = { w: paint(w), b: paint(b) };
+      if (built !== model.king) built.geometry.dispose();
+      return [id, pair];
+    }),
+  ) as Record<ShapeId, Pair>;
 
   material.dispose();
   scene.environment?.dispose();
   pmrem.dispose();
   renderer.dispose();
   disposeChessModel(model);
-  return images;
+  return { sets, shapes };
 };
 
 /** The pictures, rendered on the first call. Rejects if WebGL or the model is unavailable. */

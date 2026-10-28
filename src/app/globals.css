@@ -17,8 +17,8 @@
      trough of the pixel-wave field drawn over it, deliberately close together so
      the waves read as a texture rather than a pattern. */
   --raw-color-brand-500: #0f5ddf;
-  --raw-color-brand-600: #004ac7;
-  --raw-color-brand-700: #003a9e;
+  --raw-color-brand-600: #0a3a96;
+  --raw-color-brand-700: #062a72;
 
   /* Ink on the white surfaces (the contact pill, the CTA bar). */
   --raw-color-ink-900: #061436;
@@ -59,6 +59,18 @@
   --raw-size-marker: 0.1875rem; /* 3px — the dot before the CTA label */
   --raw-size-contact: 11.8125rem; /* 189px — contact pill */
 
+  /* Winter: icy button faces (top lightest, bottom a pale frost blue) and the
+     glow/edge that makes them read as ice. */
+  /* Winter backdrop: deep navy at the top fading to pale sky blue. */
+  --raw-color-winter-top: #061a45;
+  --raw-color-winter-bottom: #4a74b5;
+  --raw-color-ice-top: #dbe9f5;
+  --raw-color-ice-bottom: #97b8d6;
+  --raw-color-ice-ink: #0b2a55;
+  /* The chosen option's border: a bright blue that shows on the blue page. */
+  --raw-color-select: #1e78e6;
+  --raw-shadow-ice: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -2px 6px rgb(100 150 200 / 0.3), 0 0 12px rgb(160 200 240 / 0.25);
+
   --raw-duration-fast: 150ms;
   --raw-duration-normal: 250ms;
 }
@@ -78,8 +90,8 @@
   --background: var(--raw-color-brand-600);
   --foreground: var(--raw-color-neutral-100);
 
-  --backdrop-wave-low: var(--raw-color-brand-700);
-  --backdrop-wave-high: var(--raw-color-brand-500);
+  --backdrop-wave-low: var(--raw-color-winter-top);
+  --backdrop-wave-high: var(--raw-color-winter-bottom);
   /* The mobile menu's ground — a step deeper than the page, so the curtain
      reads as a layer arriving over it. */
   --menu-ground: var(--raw-color-brand-700);
@@ -88,6 +100,11 @@
   --ink: var(--raw-color-ink-900);
   --rule: var(--raw-color-rule);
   --veil: var(--raw-color-veil);
+  --ice-top: var(--raw-color-ice-top);
+  --ice-bottom: var(--raw-color-ice-bottom);
+  --ice-ink: var(--raw-color-ice-ink);
+  --select: var(--raw-color-select);
+  --ice-glow: var(--raw-shadow-ice);
 
   --display: var(--raw-text-display);
   --display-leading: var(--raw-text-display-leading);
@@ -135,6 +152,11 @@
   --color-ink: var(--ink);
   --color-rule: var(--rule);
   --color-veil: var(--veil);
+  --color-ice-top: var(--ice-top);
+  --color-ice-bottom: var(--ice-bottom);
+  --color-ice-ink: var(--ice-ink);
+  --color-select: var(--select);
+  --shadow-ice: var(--ice-glow);
 
   --text-display: var(--display);
   --text-display--line-height: var(--display-leading);
@@ -164,7 +186,7 @@
   --spacing-contact: var(--contact);
 
   --font-sans: var(--font-general-sans);
-  --font-display: var(--font-jersey);
+  --font-display: var(--font-general-sans);
 
   /* Leading floor for clipped TextEngine reveals — see
      obsidian/frontend/text-engine.md → "Alignment & line-height". */
@@ -223,15 +245,8 @@ body {
   }
 }
 
-@layer utilities {
-  /* Keeps a deliberately low-resolution canvas crisp when it is scaled up, so
-     the wave field reads as pixels rather than a blur. */
-  .pixelated {
-    image-rendering: pixelated;
-  }
-}
-
 @layer components {
   /* The native cursor is never hidden (ADR-0025, owner 2026-10-01): the 3D
      cursor floats after it instead of replacing it. */
 }
+

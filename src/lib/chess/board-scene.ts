@@ -11,6 +11,7 @@ import {
   AmbientLight,
   BoxGeometry,
   CircleGeometry,
+  CanvasTexture,
   Color,
   DirectionalLight,
   Group,
@@ -31,6 +32,7 @@ import {
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
+import { boardTexture } from "@/lib/chess/board-textures";
 import { BOARD_THEMES } from "@/lib/chess/board-themes";
 import { PIECE_SETS, type Finish, type PieceSetId } from "@/lib/chess/piece-sets";
 import type { Team, ThemeId } from "@/lib/chess/storage";
@@ -65,7 +67,11 @@ export interface BoardScene {
   /** The square the keyboard cursor is on, or `null` when it is hidden. */
   setCursor: (square: string | null) => void;
   setMovable: (on: boolean) => void;
+  /** Close view: fills a narrow screen with the squares, cropping the frame and the sides. */
+  setZoom: (on: boolean) => void;
   resetView: () => void;
+  /** Slowly circles the camera round the board (the home page's showcase). */
+  setAutoRotate: (on: boolean) => void;
   dispose: () => void;
 }
 
@@ -149,11 +155,19 @@ export const createBoardScene = (
       clearcoatRoughness: 0.25,
       envMapIntensity: reflect,
     });
-  const light = surface(palette.light, 0.25, 1, palette.reflect[0]);
-  const dark = surface(palette.dark, 0.35, 0.15, palette.reflect[1]);
+  const textures: CanvasTexture[] = [];
+  const painted = (map: CanvasTexture, reflect: number) => {
+    textures.push(map);
+    return new MeshPhysicalMaterial({ map, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.15, envMapIntensity: reflect });
+  };
+  // A few different nebulae, dealt out across the light squares.
+  const nebulae = palette.look ? Array.from({ length: 5 }, () => painted(boardTexture(palette.look!, false), palette.reflect[0])) : [];
+  const light = palette.look ? nebulae[0] : surface(palette.light, 0.25, 1, palette.reflect[0]);
+  const shades = palette.look ? Array.from({ length: 5 }, () => painted(boardTexture(palette.look!, true), palette.reflect[1])) : [];
+  const dark = palette.look ? shades[0] : surface(palette.dark, 0.35, 0.15, palette.reflect[1]);
   const frame = surface(palette.frame, 0.4, 0.1, palette.reflect[2]);
-  const finish = ({ color, metalness, roughness, clearcoat }: Finish) =>
-    new MeshPhysicalMaterial({ color: new Color(color), metalness, roughness, clearcoat, clearcoatRoughness: 0.2 });
+  const finish = ({ color, metalness, roughness, clearcoat, opacity }: Finish) =>
+    new MeshPhysicalMaterial({ color: new Color(color), metalness, roughness, clearcoat, clearcoatRoughness: 0.2, opacity: opacity ?? 1, transparent: (opacity ?? 1) < 1 });
   const whitePieces = finish(PIECE_SETS[pieces].w);
   const blackPieces = finish(PIECE_SETS[pieces].b);
 
@@ -163,7 +177,7 @@ export const createBoardScene = (
   const tiles: Mesh[] = [];
   for (let row = 0; row < 8; row += 1) {
     for (let col = 0; col < 8; col += 1) {
-      const tile = new Mesh(tileGeometry, (row + col) % 2 === 0 ? light : dark);
+      const tile = new Mesh(tileGeometry, (row + col) % 2 === 0 ? (nebulae.length ? nebulae[(row * 8 + col) % nebulae.length] : light) : shades.length ? shades[(row * 8 + col) % shades.length] : dark);
       tile.position.set(col - 3.5, -TILE_HEIGHT / 2, row - 3.5);
       tile.userData.square = "abcdefgh"[col] + (8 - row);
       board.add(tile);
@@ -299,6 +313,7 @@ export const createBoardScene = (
 
   // ---- sizing and loop --------------------------------------------------------
 
+  let fit = 1;
   const resize = () => {
     const { clientWidth: width, clientHeight: height } = host;
     if (!width || !height) return;
@@ -306,7 +321,7 @@ export const createBoardScene = (
     invalidate();
     camera.aspect = width / height;
     // A tall, narrow window (a phone) would crop the sides of the board: widen the view.
-    const needed = Math.max(1, 1.1 / camera.aspect);
+    const needed = Math.max(1, fit / camera.aspect);
     camera.fov = (2 * Math.atan(Math.tan((BASE_FOV * Math.PI) / 360) * needed) * 180) / Math.PI;
     camera.updateProjectionMatrix();
   };
@@ -444,7 +459,15 @@ export const createBoardScene = (
     setMovable: (on) => {
       controls.enabled = on;
     },
+    setZoom: (on) => {
+      fit = on ? 0.8 : 1;
+      resize();
+    },
     resetView: () => controls.reset(),
+    setAutoRotate: (on) => {
+      controls.autoRotate = on;
+      controls.autoRotateSpeed = 0.8;
+    },
 
     dispose: () => {
       cancelAnimationFrame(frameId);
@@ -458,7 +481,8 @@ export const createBoardScene = (
       squareGeometry.dispose();
       paints.forEach((material) => material.dispose());
       [tileGeometry, rimGeometry].forEach((geometry) => geometry.dispose());
-      [light, dark, frame, whitePieces, blackPieces].forEach((material) => material.dispose());
+      [light, dark, frame, whitePieces, blackPieces, ...nebulae, ...shades].forEach((material) => material.dispose());
+      textures.forEach((texture) => texture.dispose());
       scene.environment?.dispose();
       pmrem.dispose();
       renderer.dispose();

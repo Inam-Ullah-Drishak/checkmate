@@ -13,6 +13,8 @@ import { Preloader } from "@/components/common/preloader";
 import { ReducedMotion } from "@/components/common/reduced-motion";
 import { ScrollLayout } from "@/layouts/scroll-layout";
 
+import { themeBootScript } from "@/lib/site-themes";
+
 import "@/app/globals.css";
 
 /**
@@ -28,14 +30,6 @@ const generalSans = localFont({
   display: "swap",
 });
 
-const jersey = localFont({
-  src: "./fonts/Jersey25-Regular-latin.woff2",
-  variable: "--font-jersey",
-  weight: "400",
-  style: "normal",
-  display: "swap",
-});
-
 export const metadata: Metadata = generateMetadata();
 export const viewport: Viewport = generateViewport();
 
@@ -46,7 +40,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${generalSans.variable} ${jersey.variable} font-sans`}>
+      <body className={`${generalSans.variable} font-sans`}>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

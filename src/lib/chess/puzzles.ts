@@ -12,7 +12,28 @@ export interface Puzzle {
   goal: string;
   fen: string;
   solution: string[];
+  /** Guided tutorial only: what to say before each of the player's moves; the expected move is highlighted. */
+  guide?: string[];
 }
+
+/**
+ * The guided tutorial: a whole game from the start position that the player is
+ * walked through to a win (Scholar's mate). Not in `PUZZLES`, so it is not
+ * counted as a solved puzzle.
+ */
+export const GUIDED_TUTORIAL: Puzzle = {
+  id: "guided-tutorial",
+  title: "Guided tutorial",
+  goal: "Follow the highlighted moves to win",
+  fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  solution: ["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"],
+  guide: [
+    "Step 1 of 4: take the centre. Click the highlighted pawn, then the highlighted square.",
+    "Step 2 of 4: bring out the bishop. It aims at Black's weak f7 square.",
+    "Step 3 of 4: the queen joins the attack, also aiming at f7.",
+    "Step 4 of 4: capture on f7 with the queen. The king has no escape: checkmate!",
+  ],
+};
 
 export const PUZZLES: Puzzle[] = [
   {

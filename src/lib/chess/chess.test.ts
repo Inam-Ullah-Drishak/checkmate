@@ -5,7 +5,7 @@ import { RULES, type Diagram } from "@/data/rules";
 import { BOARD_THEMES } from "@/lib/chess/board-themes";
 import { openingName } from "@/lib/chess/openings";
 import { PIECE_SET_IDS, PIECE_SETS } from "@/lib/chess/piece-sets";
-import { PUZZLES } from "@/lib/chess/puzzles";
+import { GUIDED_TUTORIAL, PUZZLES } from "@/lib/chess/puzzles";
 import {
   loadPastGames,
   loadRecord,
@@ -175,5 +175,15 @@ describe("saved data", () => {
     expect(loadRecord()).toEqual({ win: 0, loss: 0, draw: 0 });
     expect(loadPastGames()).toHaveLength(0);
     expect(loadSettings().level).toBe("master");
+  });
+});
+
+describe("guided tutorial", () => {
+  it("is a legal game that ends in checkmate for the player, with a line of guidance per player move", () => {
+    const game = new Chess(GUIDED_TUTORIAL.fen);
+    for (const move of GUIDED_TUTORIAL.solution) game.move({ from: move.slice(0, 2), to: move.slice(2, 4) });
+    expect(game.isCheckmate()).toBe(true);
+    expect(game.turn()).toBe("b");
+    expect(GUIDED_TUTORIAL.guide).toHaveLength(Math.ceil(GUIDED_TUTORIAL.solution.length / 2));
   });
 });

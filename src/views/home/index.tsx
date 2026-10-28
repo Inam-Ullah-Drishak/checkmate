@@ -16,8 +16,6 @@
  * 📖 Docs: obsidian/frontend/chess-scene.md
  */
 
-import { LazyChessScene } from "@/components/common/chess-scene";
-import { ChessStill } from "@/components/common/chess-scene/chess-still";
 import { RobotProvider, RobotView } from "@/components/common/robot-view";
 import { homeCopy } from "@/data/mocks/home";
 import { HeroIntro } from "@/views/home/hero-intro";
@@ -41,21 +39,14 @@ export const HomeView = ({ robot = false }: { robot?: boolean }) => {
             contact={homeCopy.contact}
           />
 
-          {/* Three columns from `lg`, stacked below it. The scene needs an
-            explicit aspect while stacked — with no fixed body height there is
-            nothing for it to fill. */}
-          <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[493fr_414fr_493fr]">
+          {/* Two columns from `lg` (copy, figures), stacked below it. */}
+          <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-2">
             <HeroIntro
               headline={homeCopy.headline}
               description={homeCopy.description}
               action={homeCopy.action}
               actionHref="/play"
             />
-
-            {/* At `lg` this fills the cell exactly, as `image 640` does in the design. */}
-            <div className="relative aspect-[4/5] sm:aspect-[3/2] lg:aspect-auto">
-              {robot ? <ChessStill /> : <LazyChessScene />}
-            </div>
 
             <PlayerStats stats={homeCopy.stats} />
           </div>

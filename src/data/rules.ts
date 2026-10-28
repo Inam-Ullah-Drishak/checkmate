@@ -110,7 +110,7 @@ export const RULES: RuleSection[] = [
       },
       {
         name: "Your army",
-        text: "Each side starts with 16 pieces: one king, one queen, two rooks, two bishops, two knights and eight pawns. In this game the two sides are called by the names of the piece design you picked in Settings (Silver and Gold at first). Silver, the white side, moves first.",
+        text: "Each side starts with 16 pieces: one king, one queen, two rooks, two bishops, two knights and eight pawns. In this game the two sides are called by the names of the piece colour you picked in Settings (Silver and Gold at first). Silver, the white side, moves first.",
       },
       {
         name: "What the pieces are worth",
@@ -312,7 +312,7 @@ export const RULES: RuleSection[] = [
       { name: "Help", text: "Undo takes back your move and the computer's reply. Hint shows a strong move for a few seconds. Offer draw and Resign end the game early." },
       { name: "Puzzles", text: "The Puzzles tab gives you positions where you must find checkmate in one or two moves." },
       { name: "Your games", text: "Finished games are saved in this browser. Open History to replay one move by move, or paste a game to review it. Copy PGN copies your game so you can keep it." },
-      { name: "Settings", text: "Choose the board, the piece design, the move timer, sound and the on-screen helpers in Settings. Everything is saved in this browser." },
+      { name: "Settings", text: "Choose the board, the piece colour, the move timer, sound and the on-screen helpers in Settings. Everything is saved in this browser." },
     ],
   },
 ];

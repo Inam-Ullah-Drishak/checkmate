@@ -29,7 +29,7 @@ export const siteConfig = {
    * Browser theme-color (address bar / PWA). The page background, so the chrome
    * blends into it rather than framing it.
    */
-  themeColor: "#004AC7",
+  themeColor: "#0A3A96",
 } as const;
 
 /**
@@ -40,7 +40,7 @@ export const siteConfig = {
  * reach it. Keep in step with `--raw-color-brand-600` and `--raw-color-white`.
  */
 export const brandMark = {
-  background: "#004AC7",
+  background: "#0A3A96",
   foreground: "#ffffff",
   /** The wordmark. The favicon is the king piece, drawn in `lib/king-mark.tsx`. */
   wordmark: "Checkmate.",

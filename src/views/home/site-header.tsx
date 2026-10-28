@@ -23,6 +23,7 @@
 
 import { useCallback, useState } from "react";
 
+import { iceCta } from "@/components/common/board-3d/ui";
 import type { NavLink } from "@/data/mocks/home";
 import { MOBILE_MENU_ID, MenuBars, MobileMenu } from "@/views/home/mobile-menu";
 import { Reveal } from "@/views/home/reveal";
@@ -55,7 +56,7 @@ const StepMark = () => (
 const ContactPill = ({ contact, className }: { contact: NavLink; className: string }) => (
   <a
     href={contact.href}
-    className={`bg-surface-invert text-ink text-body hover:bg-ink hover:text-surface-invert flex items-center justify-center gap-2 ${hover} ${className}`}
+    className={`${iceCta} text-body flex items-center justify-center gap-2 ${className}`}
   >
     {contact.label}
     <StepMark />
@@ -71,7 +72,7 @@ export const SiteHeader = ({ company, links, contact }: SiteHeaderProps) => {
     // the 1px bottom rule has to be *inside* the 55px, or the whole body below
     // starts a pixel late and every measured coordinate drifts. Only from `sm`,
     // since an open burger has to be free to make the header taller.
-    <header className="bg-veil sm:h-topbar">
+    <header className="bg-veil mt-2 rounded-3xl backdrop-blur-md sm:h-topbar">
       {/* No `items-center` on the grid: it would collapse every cell to its text
           height, leaving the pill's `h-full` nothing to fill. Cells stretch, and
           each one centres its own content. */}
@@ -92,7 +93,7 @@ export const SiteHeader = ({ company, links, contact }: SiteHeaderProps) => {
           onClick={() => setOpen(true)}
           aria-expanded={open}
           aria-controls={MOBILE_MENU_ID}
-          className={`hover:text-foreground/60 flex size-topbar items-center justify-center sm:hidden ${hover}`}
+          className={`flex size-topbar items-center justify-center sm:hidden ${hover}`}
         >
           <span className="sr-only">Open menu</span>
           <MenuBars open={open} />
@@ -110,7 +111,7 @@ export const SiteHeader = ({ company, links, contact }: SiteHeaderProps) => {
           <ul className="text-body flex list-none flex-row justify-center gap-10">
             {links.map((link, index) => (
               <Reveal key={link.href} tag="li" {...ENTRANCE} delay={60 + index * 70}>
-                <a href={link.href} className={`hover:text-foreground/60 ${hover}`}>
+                <a href={link.href} className={`${hover}`}>
                   {link.label}
                 </a>
               </Reveal>

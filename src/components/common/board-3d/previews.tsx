@@ -7,14 +7,16 @@
  * preview cannot drift from what you get in a match.
  */
 
+import { SITE_THEMES, type SiteThemeId } from "@/lib/site-themes";
 import { useEffect, useId, useState } from "react";
 
-import { fade } from "@/components/common/board-3d/ui";
+import { fade, glass, iceLook } from "@/components/common/board-3d/ui";
 import type { Diagram } from "@/data/rules";
 import { BOARD_THEMES } from "@/lib/chess/board-themes";
 import { KING_PATHS } from "@/lib/king-mark";
 import { kingImages, type KingImages } from "@/lib/chess/piece-previews";
 import { PIECE_SETS, type Finish, type PieceSetId } from "@/lib/chess/piece-sets";
+import type { ShapeId } from "@/lib/chess/piece-shapes";
 import type { ThemeId } from "@/lib/chess/storage";
 
 /** Mixes a #rrggbb colour towards white (amount > 0) or black (amount < 0). */
@@ -60,6 +62,30 @@ const King = ({ finish, x, id }: { finish: Finish; x: number; id: string }) => {
   );
 };
 
+const KingPair = ({ pair }: { pair: { w: string; b: string } }) => (
+  <span className="flex h-full items-center">
+    {/* eslint-disable-next-line @next/next/no-img-element -- small generated data URLs */}
+    <img src={pair.w} alt="" className="h-full" />
+    {/* eslint-disable-next-line @next/next/no-img-element -- small generated data URLs */}
+    <img src={pair.b} alt="" className="h-full" />
+  </span>
+);
+
+/** The king in one shape, rendered from the real 3D geometry (blank until ready). */
+export const ShapePreview = ({ shape }: { shape: ShapeId }) => {
+  const [images, setImages] = useState<KingImages | null>(null);
+  useEffect(() => {
+    let alive = true;
+    kingImages()
+      .then((rendered) => alive && setImages(rendered))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return images ? <KingPair pair={images.shapes[shape]} /> : null;
+};
+
 export const PiecesPreview = ({ set }: { set: PieceSetId }) => {
   const id = useId();
   const { w, b } = PIECE_SETS[set];
@@ -75,16 +101,7 @@ export const PiecesPreview = ({ set }: { set: PieceSetId }) => {
     };
   }, []);
 
-  if (images) {
-    return (
-      <span className="flex h-full items-center">
-        {/* eslint-disable-next-line @next/next/no-img-element -- small generated data URLs */}
-        <img src={images[set].w} alt="" className="h-full" />
-        {/* eslint-disable-next-line @next/next/no-img-element -- small generated data URLs */}
-        <img src={images[set].b} alt="" className="h-full" />
-      </span>
-    );
-  }
+  if (images) return <KingPair pair={images.sets[set]} />;
 
   return (
     <svg viewBox="0 0 136 64" className="h-full" aria-hidden="true">
@@ -94,7 +111,7 @@ export const PiecesPreview = ({ set }: { set: PieceSetId }) => {
   );
 };
 
-const STROKE = "#ffffff";
+const STROKE = "currentColor";
 
 /** A clock face with the share of a minute filled in; no limit is an infinity sign. */
 export const ClockPreview = ({ seconds }: { seconds: number }) => {
@@ -183,15 +200,18 @@ export const Picker = <T extends string | number>({
   onChange,
   preview,
   name,
+  flat,
 }: {
   label: string;
   options: readonly T[];
   value: T;
   onChange: (next: T) => void;
   preview: (option: T) => React.ReactNode;
-  name: (option: T) => string;
+  name: (option: T) => React.ReactNode;
+  /** The name brings its own background, so the card draws no label padding or fill. The chosen card always gets a ring. */
+  flat?: boolean;
 }) => (
-  <div className="flex flex-wrap gap-3" role="group" aria-label={label}>
+  <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap" role="group" aria-label={label}>
     {options.map((option) => {
       const on = value === option;
       return (
@@ -200,10 +220,10 @@ export const Picker = <T extends string | number>({
           type="button"
           aria-pressed={on}
           onClick={() => onChange(option)}
-          className={`flex w-[16.5rem] max-w-full cursor-pointer flex-col text-left ${fade} ${on ? "bg-surface-invert text-ink" : "bg-veil hover:bg-foreground/15"}`}
+          className={`flex w-full min-w-0 cursor-pointer sm:w-[16.5rem] flex-col overflow-hidden rounded-3xl text-center ${fade} ${on ? iceLook : glass}`}
         >
-          <span className="bg-ink flex h-36 items-center justify-center p-4">{preview(option)}</span>
-          <span className="text-body p-3">{name(option)}</span>
+          <span className="flex h-28 items-center justify-center p-3 sm:h-36 sm:p-4">{preview(option)}</span>
+          <span className={flat ? "text-xs sm:text-body" : "p-2 text-xs sm:text-body sm:p-3"}>{name(option)}</span>
         </button>
       );
     })}
@@ -302,3 +322,21 @@ export const RuleDiagram = ({ diagram }: { diagram: Diagram }) => {
     </svg>
   );
 };
+
+/** A tiny page in a site theme's colours and heading face. */
+export const SiteThemePreview = ({ theme }: { theme: SiteThemeId }) => {
+  const { bg, ink, accent } = SITE_THEMES[theme].preview;
+  return (
+    <span className="flex size-full flex-col justify-between rounded p-2 text-left sm:p-3" style={{ background: bg, color: ink }}>
+      <span className="font-display text-base leading-tight sm:text-2xl sm:leading-none">
+        Play chess
+      </span>
+      <span className="self-start rounded-full px-1.5 py-0.5 text-[0.6rem] sm:px-3 sm:py-1 sm:text-xs" style={{ background: accent, color: bg }}>
+        Start a match
+      </span>
+    </span>
+  );
+};
+
+/** A piece design's name, plain like every other card. */
+export const PieceLabel = ({ set }: { set: PieceSetId }) => <>{PIECE_SETS[set].label}</>;

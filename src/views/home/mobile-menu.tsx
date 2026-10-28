@@ -4,10 +4,8 @@
  * The full-screen menu below `sm` (owner review, 2026-10-06 — the burger used
  * to unfold the links inline under the bar).
  *
- * A deeper brand blue drops over the page as a **pixel staircase**: the screen is
- * cut into columns and each one falls a beat after its neighbour, starting
- * from the toggle's corner — the stepped edge is the same up-and-right step as
- * the contact pill's mark. The links then rise one after another out of line
+ * A deeper brand blue drops over the page as a smooth circle growing
+ * from the toggle's corner. The links then rise one after another out of line
  * masks in the display face, large, each over a rule drawn from the left, and
  * the contact pill settles in at the bottom. Closing pulls the columns back up
  * into the corner, faster.
@@ -35,34 +33,22 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 
+import { iceCta } from "@/components/common/board-3d/ui";
 import type { NavLink } from "@/data/mocks/home";
 import { useScroll } from "@/hooks/smooth-scroll/use-scroll";
 import { MENU_CURTAIN, MENU_EXIT, MENU_ITEM, MENU_TOGGLE } from "@/lib/springs/config";
 
 export const MOBILE_MENU_ID = "mobile-menu";
 
-/** Columns of the staircase, and how far apart (in curtain progress) they fall. */
-const COLUMNS = 6;
-const STAGGER = 0.45;
 /** First link after the curtain starts, then one beat per link. */
 const LINK_DELAY_MS = 200;
 const LINK_STAGGER_MS = 55;
 
-/** The curtain's outline at progress `p`: columns falling from the right. */
-const staircase = (p: number): string => {
-  const width = 100 / COLUMNS;
-  const points = ["0% 0%", "100% 0%"];
-  for (let i = 0; i < COLUMNS; i++) {
-    const fall = Math.min(1, Math.max(0, p * (1 + STAGGER) - (STAGGER * i) / (COLUMNS - 1)));
-    const h = (fall * 100).toFixed(2);
-    const right = (100 - i * width).toFixed(3);
-    const left = (100 - (i + 1) * width).toFixed(3);
-    points.push(`${right}% ${h}%`, `${left}% ${h}%`);
-  }
-  return `polygon(${points.join(", ")})`;
-};
+/** The curtain's outline at progress `p`: a smooth circle growing from the toggle's corner. */
+const staircase = (p: number): string => `circle(${(Math.max(0, p) * 150).toFixed(2)}% at 100% 0%)`;
 
 /** Three bars that fold into an ✕ — the toggle's icon, in the bar and in the menu. */
 export const MenuBars = ({ open }: { open: boolean }) => {
@@ -113,6 +99,8 @@ export interface MobileMenuProps {
   contact: NavLink;
   /** The bar's toggle — focus goes back to it on close. */
   toggleSelector: string;
+  /** Handles a chosen link itself (return true), e.g. switching a tab; otherwise it scrolls or navigates. */
+  onSelect?: (href: string) => boolean;
 }
 
 export const MobileMenu = ({
@@ -122,10 +110,12 @@ export const MobileMenu = ({
   links,
   contact,
   toggleSelector,
+  onSelect,
 }: MobileMenuProps) => {
   /** Shown from the first open frame until the close spring rests. */
   const [shown, setShown] = useState(false);
   const [portal, setPortal] = useState<HTMLElement | null>(null);
+  const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
   /** A navigation to run once the page can scroll again. */
   const pending = useRef<string | null>(null);
@@ -193,6 +183,12 @@ export const MobileMenu = ({
       document.querySelector<HTMLElement>(toggleSelector)?.focus({ preventScroll: true });
       return;
     }
+    if (onSelect?.(target)) return;
+    // A link to another page (/play, /play?tab=…) is a real navigation, not a scroll.
+    if (!target.startsWith("#") && !target.startsWith("/#")) {
+      router.push(target);
+      return;
+    }
     // After the scroll layout has re-enabled scrolling (its effect commits with
     // this render).
     const frame = requestAnimationFrame(() => {
@@ -207,7 +203,7 @@ export const MobileMenu = ({
       else if (element) element.scrollIntoView({ behavior: "smooth" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [open, shown, toggleSelector]);
+  }, [open, shown, toggleSelector, router, onSelect]);
 
   const onNavigate = useCallback(
     (event: ReactMouseEvent<HTMLAnchorElement>) => {
@@ -260,7 +256,7 @@ export const MobileMenu = ({
             data-menu-close=""
             aria-label="Close menu"
             onClick={onClose}
-            className={`hover:text-foreground/60 flex size-topbar items-center justify-center ${hover}`}
+            className={`flex size-topbar items-center justify-center ${hover}`}
           >
             <MenuBars open={open} />
           </button>
@@ -280,7 +276,7 @@ export const MobileMenu = ({
                       <a
                         href={link.href}
                         onClick={onNavigate}
-                        className={`hover:text-foreground/60 flex items-baseline justify-between py-3 ${hover}`}
+                        className={`flex items-baseline justify-between py-3 ${hover}`}
                       >
                         <span className="font-display text-menu leading-display">{link.label}</span>
                         <span aria-hidden="true" className="text-body text-foreground/80">
@@ -301,7 +297,7 @@ export const MobileMenu = ({
             <a
               href={contact.href}
               onClick={onNavigate}
-              className={`bg-surface-invert text-ink text-body hover:bg-ink hover:text-surface-invert flex h-action items-center justify-center gap-2 ${hover}`}
+              className={`${iceCta} text-body flex h-action items-center justify-center gap-2`}
             >
               {contact.label}
               <svg viewBox="0 0 9 9" aria-hidden="true" className="size-2 shrink-0 fill-current">

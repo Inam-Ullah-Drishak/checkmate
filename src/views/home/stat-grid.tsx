@@ -1,10 +1,6 @@
 /**
- * Hero right column — a 2 × 2 grid of figures, hanging from a rule partway down.
- *
- * The empty first row is the design's: the grid starts at y=378 of a body that
- * runs 55 → 800, so the rows are 323 / 211 / 211 and only the last two carry
- * cells. Expressed as `fr` ratios rather than fixed heights so it scales with
- * the viewport like everything else.
+ * Hero right column — a compact 2 × 2 grid of figures, sitting at the bottom of
+ * the column.
  *
  * 📖 Docs: obsidian/frontend/components/common.md
  */
@@ -22,42 +18,28 @@ const CELL_STAGGER = 110;
 
 /**
  * The cell is the grid child itself, with no wrapper — `Reveal` renders the same
- * single element rather than nesting one. A wrapper stretches to the row but
- * leaves the cell only as tall as its content, and `justify-between` then has
- * nothing to distribute: the label rides up under the figure instead of sitting
- * on the cell's bottom gutter.
+ * single element rather than nesting one, so `justify-between` can pin the label
+ * to the cell's bottom.
  */
-const StatCell = ({ value, label, divided, order }: Stat & { divided: boolean; order: number }) => (
+const StatCell = ({ value, label, order }: Stat & { order: number }) => (
   <Reveal
     delay={FIRST_CELL_DELAY + order * CELL_STAGGER}
     x={18}
     y={0}
-    className="bg-veil flex min-h-36 flex-col justify-between p-shell-gutter"
+    className="bg-veil flex min-h-24 min-w-0 flex-col justify-between rounded-3xl p-4 backdrop-blur-md"
   >
-    <p className="text-display font-display">{value}</p>
+    {/* Smaller on phones so a word like "Medium" stays inside the tile. */}
+    <p className="text-display font-display max-sm:text-3xl">{value}</p>
     <p className="text-body">{label}</p>
   </Reveal>
 );
 
 export const StatGrid = ({ stats }: StatGridProps) => (
-  <section
-    aria-label="By the numbers"
-    className="flex flex-col gap-2 p-2 lg:grid lg:grid-rows-[323fr_211fr_211fr]"
-  >
-    {/* The empty first row is the design's — the grid hangs from a rule partway
-        down the column. There is no such drop below `lg`, where the section just
-        follows the scene. */}
-    <div aria-hidden="true" className="hidden lg:block" />
-
+  <section aria-label="By the numbers" className="flex flex-col justify-end gap-2 p-2">
     {[stats.slice(0, 2), stats.slice(2, 4)].map((row, index) => (
       <div key={index} className="grid grid-cols-2 gap-2">
         {row.map((stat, column) => (
-          <StatCell
-            key={stat.label}
-            {...stat}
-            divided={column === 1}
-            order={index * 2 + column}
-          />
+          <StatCell key={stat.label} {...stat} order={index * 2 + column} />
         ))}
       </div>
     ))}

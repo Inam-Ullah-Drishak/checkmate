@@ -21,7 +21,7 @@ export const privacyPolicy: {
     {
       heading: "What the game stores",
       body: [
-        "To remember your choices and your games, the site saves a small amount of data in your own browser: your settings (board, piece design, difficulty, timer, sound), your win, loss and draw record, your last ten finished games, the puzzles you have solved, and the game you are playing right now.",
+        "To remember your choices and your games, the site saves a small amount of data in your own browser: your settings (board, piece colour, difficulty, timer, sound), your win, loss and draw record, your last ten finished games, the puzzles you have solved, and the game you are playing right now.",
         "This data never leaves your device. It is not sent to us or to anyone else, and we cannot see it.",
       ],
     },

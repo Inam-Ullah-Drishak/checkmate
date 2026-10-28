@@ -21,7 +21,9 @@ import { choice, ruled, solid } from "@/components/common/board-3d/ui";
 import { createBoardScene, type BoardCell, type BoardScene } from "@/lib/chess/board-scene";
 import { createEngine, type EngineMove } from "@/lib/chess/engine";
 import { PIECE_SETS, type PieceSetId } from "@/lib/chess/piece-sets";
+import { buildShapeModel, type ShapeId } from "@/lib/chess/piece-shapes";
 import { openingName } from "@/lib/chess/openings";
+import { Fireworks, Pop } from "@/components/common/board-3d/victory";
 import type { Puzzle } from "@/lib/chess/puzzles";
 import { playSound, type Sound } from "@/lib/chess/sound";
 import {
@@ -101,6 +103,7 @@ export interface Board3DProps {
   side: Team;
   theme: ThemeId;
   pieces: PieceSetId;
+  shape: ShapeId;
   /** Show the dots for where the selected piece can go. */
   showLegal: boolean;
   /** Mark the squares of the last move. */
@@ -119,7 +122,7 @@ export interface Board3DProps {
   onNextPuzzle?: () => void;
 }
 
-export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQueen, moveSeconds, sound, resume, review, puzzle, onMenu, onNextPuzzle }: Board3DProps) => {
+export const Board3D = ({ level, side, theme, pieces, shape, showLegal, showLast, autoQueen, moveSeconds, sound, resume, review, puzzle, onMenu, onNextPuzzle }: Board3DProps) => {
   const host = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<BoardScene | null>(null);
   const actions = useRef<Actions>(NOTHING);
@@ -135,10 +138,14 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
   const [dialogHidden, setDialogHidden] = useState(false);
   const [promotion, setPromotion] = useState(false);
   const [hinting, setHinting] = useState(false);
+  // Guided tutorial: what to do next (the expected move is also highlighted on the board).
+  const [guideText, setGuideText] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [movable, setMovable] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(sound);
   const [showMoves, setShowMoves] = useState(false);
+  const [more, setMore] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
   const [reviewIndex, setReviewIndex] = useState(0);
   // What the keyboard cursor is on, read out to screen readers.
   const [cursorLabel, setCursorLabel] = useState("");
@@ -153,6 +160,10 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
   useEffect(() => {
     sceneRef.current?.setMovable(movable);
   }, [movable]);
+
+  useEffect(() => {
+    sceneRef.current?.setZoom(zoomed);
+  }, [zoomed]);
 
   useEffect(() => {
     const el = host.current;
@@ -325,6 +336,14 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
       maybeCpu();
     };
 
+    /** Guided tutorial: say what to do and highlight the scripted move for the player. */
+    const showGuide = () => {
+      const next = puzzle?.guide && puzzle.solution[puzzleStep];
+      if (!puzzle?.guide || !next || ended) return;
+      scene.setHint(next.slice(0, 2), next.slice(2, 4));
+      setGuideText(puzzle.guide[puzzleStep / 2] ?? "");
+    };
+
     /** A puzzle move: right if it is the scripted one (or mates), otherwise taken back. */
     const puzzleMove = (from: string, to: string, promotion?: PieceSymbol) => {
       if (!puzzle) return;
@@ -349,7 +368,8 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
         markSolved(puzzle.id);
         ended = true;
         clearGame();
-        setResult({ outcome: "solved", text: "Puzzle solved" });
+        if (puzzle.guide) setGuideText("Checkmate! You won.");
+        setResult({ outcome: "solved", text: puzzle.guide ? "You won by checkmate. You are ready for a real match." : "Puzzle solved" });
         setDialogHidden(false);
         snd("win");
         return;
@@ -365,6 +385,7 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
         sync();
         sayMove(answer);
         save();
+        showGuide();
       }, 600);
     };
 
@@ -491,6 +512,7 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
 
       moveStart = performance.now();
       sync();
+      showGuide();
       maybeCpu();
     };
 
@@ -585,7 +607,7 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
     loadChessModel()
       .then((model) => {
         if (cancelled) return;
-        scene.setModel(model);
+        scene.setModel(buildShapeModel(shape, model));
         setReady(true);
         setup(review ? [] : resume);
       })
@@ -622,6 +644,8 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
     saveSettings({ ...loadSettings(), sound: next });
   };
 
+  const item = `${solid} border-ink/20 h-action px-3 text-left whitespace-nowrap border-t`;
+
   const movePairs: string[][] = [];
   history.forEach((san, index) => {
     if (index % 2 === 0) movePairs.push([san]);
@@ -649,7 +673,7 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
 
       <div className="absolute top-shell-gutter left-shell-gutter flex max-w-[55%] flex-col md:max-w-[30%]">
         <p className={`${ruled} flex min-h-action items-center px-shell-gutter`} aria-live="polite">
-          {notice || (reviewing ? `${review?.title}: move ${reviewIndex} of ${review?.moves.length}` : puzzle ? `${puzzle.title}. ${puzzle.goal}` : status || "Loading")}
+          {notice || (reviewing ? `${review?.title}: move ${reviewIndex} of ${review?.moves.length}` : puzzle?.guide ? guideText : puzzle ? `${puzzle.title}. ${puzzle.goal}` : status || "Loading")}
         </p>
         {moveLeft !== null && (
           <p className={`${moveLeft <= 5000 ? "bg-ink text-surface-invert" : ruled} text-body flex h-action w-48 items-center justify-between px-shell-gutter tabular-nums`}>
@@ -661,7 +685,7 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
       </div>
 
       {/* A scrolling strip along the bottom on phones; wrapped buttons at the top right from `md`. */}
-      <div className="absolute inset-x-0 bottom-0 flex overflow-x-auto md:inset-x-auto md:top-shell-gutter md:right-shell-gutter md:bottom-auto md:max-w-[62%] md:flex-wrap md:justify-end md:overflow-visible">
+      <div className="absolute inset-x-0 bottom-0 flex overflow-x-auto pb-[env(safe-area-inset-bottom)] max-md:bg-surface-invert max-md:justify-center max-md:pb-3 md:inset-x-auto md:top-shell-gutter md:right-shell-gutter md:bottom-auto md:max-w-[62%] md:flex-wrap md:justify-end md:overflow-visible">
         <button
           type="button"
           onClick={() => {
@@ -678,56 +702,78 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
           </button>
         )}
         {canUndo && (
-          <button type="button" onClick={() => act.undo()} className={button}>
+          <button type="button" onClick={() => act.undo()} className={`${button} max-md:hidden`}>
             Undo
           </button>
         )}
-        {!reviewing && !over && (
+        {!reviewing && !over && !puzzle?.guide && (
           <button type="button" disabled={hinting} onClick={() => act.hint()} className={button}>
             {hinting ? "Thinking" : "Hint"}
           </button>
         )}
-        {!reviewing && !puzzle && !over && (
-          <>
-            <button type="button" onClick={() => act.offerDraw()} className={button}>
-              Offer draw
-            </button>
-            {confirming ? (
-              <button type="button" onClick={() => act.resign()} className={`${button} bg-ink text-surface-invert`}>
-                Confirm resign
-              </button>
-            ) : (
-              <button type="button" onClick={() => setConfirming(true)} className={button}>
-                Resign
-              </button>
-            )}
-          </>
-        )}
-        {!puzzle && history.length > 0 && (
-          <button type="button" onClick={() => act.copyPgn()} className={button}>
-            Copy PGN
-          </button>
-        )}
-        <button type="button" aria-pressed={showMoves} onClick={() => setShowMoves((value) => !value)} className={button}>
+        <button type="button" aria-pressed={showMoves} onClick={() => setShowMoves((value) => !value)} className={`${button} max-md:hidden`}>
           Moves
         </button>
-        <button type="button" aria-pressed={soundEnabled} onClick={toggleSound} className={button}>
-          {soundEnabled ? "Sound on" : "Sound off"}
+        <button type="button" aria-expanded={more} aria-pressed={more} onClick={() => setMore((value) => !value)} className={button}>
+          More
         </button>
-        {movable && (
-          <button type="button" onClick={() => sceneRef.current?.resetView()} className={button}>
-            Reset view
-          </button>
-        )}
         <button
           type="button"
           aria-pressed={movable}
           onClick={() => setMovable((value) => !value)}
-          className={movable ? "bg-ink text-surface-invert text-body h-action shrink-0 cursor-pointer border-l border-ink/20 px-3 whitespace-nowrap" : button}
+          className={`max-md:hidden ${movable ? "bg-ink text-surface-invert text-body h-action shrink-0 cursor-pointer border-l border-ink/20 px-3 whitespace-nowrap" : button}`}
         >
           {movable ? "Lock view" : "Move view"}
         </button>
       </div>
+
+      {more && (
+        <div className="absolute right-shell-gutter bottom-[calc(var(--spacing-action)+var(--spacing-shell-gutter)+env(safe-area-inset-bottom))] z-10 flex w-44 flex-col md:top-[calc(var(--spacing-shell-gutter)+var(--spacing-action))] md:bottom-auto">
+          {canUndo && (
+            <button type="button" onClick={() => { setMore(false); act.undo(); }} className={`${item} md:hidden`}>
+              Undo
+            </button>
+          )}
+          <button type="button" aria-pressed={showMoves} onClick={() => { setMore(false); setShowMoves((value) => !value); }} className={`${item} md:hidden`}>
+            Moves
+          </button>
+          <button type="button" aria-pressed={movable} onClick={() => { setMore(false); setMovable((value) => !value); }} className={`${item} md:hidden`}>
+            {movable ? "Lock view" : "Move view"}
+          </button>
+          {!reviewing && !puzzle && !over && (
+            <>
+              <button type="button" onClick={() => { setMore(false); act.offerDraw(); }} className={item}>
+                Offer draw
+              </button>
+              {confirming ? (
+                <button type="button" onClick={() => { setMore(false); act.resign(); }} className={`${item} bg-ink text-surface-invert`}>
+                  Confirm resign
+                </button>
+              ) : (
+                <button type="button" onClick={() => setConfirming(true)} className={item}>
+                  Resign
+                </button>
+              )}
+            </>
+          )}
+          {!puzzle && history.length > 0 && (
+            <button type="button" onClick={() => { setMore(false); act.copyPgn(); }} className={item}>
+              Copy PGN
+            </button>
+          )}
+          <button type="button" aria-pressed={soundEnabled} onClick={toggleSound} className={item}>
+            {soundEnabled ? "Sound on" : "Sound off"}
+          </button>
+          <button type="button" aria-pressed={zoomed} onClick={() => { setMore(false); setZoomed((value) => !value); }} className={item}>
+            {zoomed ? "Full view" : "Zoom in"}
+          </button>
+          {movable && (
+            <button type="button" onClick={() => { setMore(false); sceneRef.current?.resetView(); }} className={item}>
+              Reset view
+            </button>
+          )}
+        </div>
+      )}
 
       {showMoves && (
         <div
@@ -787,7 +833,7 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
 
       {result && !dialogHidden && (
         <div className="absolute inset-0 flex items-center justify-center px-shell-inset">
-          <div className="border-rule bg-background text-foreground w-full max-w-sm border">
+          <Pop className="border-rule bg-background text-foreground w-full max-w-sm border">
             <h2 className="text-display font-display p-shell-gutter">
               {result.outcome === "win" || result.outcome === "solved" ? "Victory" : result.outcome === "loss" ? "Defeat" : "Draw"}
             </h2>
@@ -808,7 +854,8 @@ export const Board3D = ({ level, side, theme, pieces, showLegal, showLast, autoQ
                 Menu
               </button>
             </div>
-          </div>
+          </Pop>
+          {(result.outcome === "win" || result.outcome === "solved") && <Fireworks />}
         </div>
       )}
     </div>

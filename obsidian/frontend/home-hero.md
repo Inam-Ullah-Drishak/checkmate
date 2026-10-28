@@ -17,6 +17,7 @@ src/views/home/
 ├── index.tsx          # HomeView — the shell, the three columns, the bot gate
 ├── site-header.tsx    # logo · centred nav · contact pill · burger  ("use client")
 ├── hero-intro.tsx     # headline / rule / copy / call to action
+├── start-match.tsx    # the CTA as a client button: first-time players get the welcome popup, others go to /play
 ├── headline.tsx       # the headline, set letter by letter  ("use client")
 ├── reveal.tsx         # one staged entrance, held until the curtain lifts  ("use client")
 └── stat-grid.tsx      # the 2 × 2 figures
