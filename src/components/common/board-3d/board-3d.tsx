@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { choice, ruled, solid } from "@/components/common/board-3d/ui";
 import { createBoardScene, type BoardCell, type BoardScene } from "@/lib/chess/board-scene";
+import { disposeBoardModel, loadBoardModel } from "@/lib/chess/board-model";
 import { createEngine, type EngineMove } from "@/lib/chess/engine";
 import { PIECE_SETS, type PieceSetId } from "@/lib/chess/piece-sets";
 import { buildShapeModel, type ShapeId } from "@/lib/chess/piece-shapes";
@@ -203,6 +204,18 @@ export const Board3D = ({ level, side, theme, pieces, shape, showLegal, showLast
     const names = PIECE_SETS[pieces].names;
     const scene = createBoardScene(el, { side, theme, pieces, onSquare: (square) => onSquare(square) });
     sceneRef.current = scene;
+
+    loadBoardModel()
+      .then((model) => {
+        if (cancelled) {
+          disposeBoardModel(model);
+          return;
+        }
+        scene.setBoardModel(model);
+      })
+      .catch(() => {
+        if (!cancelled) notify("The 3D board model failed to load");
+      });
 
     // ---- showing the game on the board ---------------------------------------
 
@@ -605,9 +618,10 @@ export const Board3D = ({ level, side, theme, pieces, shape, showLegal, showLast
     // ---- go ------------------------------------------------------------------
 
     loadChessModel()
+      .then((model) => buildShapeModel(shape, model))
       .then((model) => {
         if (cancelled) return;
-        scene.setModel(buildShapeModel(shape, model));
+        scene.setModel(model);
         setReady(true);
         setup(review ? [] : resume);
       })

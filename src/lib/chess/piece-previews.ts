@@ -80,15 +80,13 @@ const render = async (): Promise<KingImages> => {
 
   // Each shape's king, in the default silver and gold.
   const { w, b } = PIECE_SETS["gold-silver"];
-  const shapes = Object.fromEntries(
-    SHAPE_IDS.map((id) => {
-      const built = buildShapeModel(id, model).king;
-      show(built);
-      const pair = { w: paint(w), b: paint(b) };
-      if (built !== model.king) built.geometry.dispose();
-      return [id, pair];
-    }),
-  ) as Record<ShapeId, Pair>;
+  const shapes = {} as Record<ShapeId, Pair>;
+  for (const id of SHAPE_IDS) {
+    const built = (await buildShapeModel(id, model).catch(() => model)).king;
+    show(built);
+    shapes[id] = { w: paint(w), b: paint(b) };
+    if (built !== model.king) built.geometry.dispose();
+  }
 
   material.dispose();
   scene.environment?.dispose();

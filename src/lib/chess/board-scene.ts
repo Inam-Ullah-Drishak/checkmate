@@ -53,6 +53,8 @@ export interface Target {
 export interface BoardScene {
   /** Hands over the loaded piece geometry; the scene disposes it. */
   setModel: (model: ChessModel) => void;
+  /** Hands over the loaded Blender board frame; the scene disposes its geometry. */
+  setBoardModel: (model: Group) => void;
   /** Clears every piece (and the captured ones) and sets up `cells`. */
   reset: (cells: BoardCell[]) => void;
   /** While on, moves land at once instead of animating (used to replay a game). */
@@ -88,10 +90,10 @@ const PIECES: Record<PieceSymbol, { part?: number; height: number }> = {
 const TILE_HEIGHT = 0.25;
 /** Captured pieces stand on the frame, in a row along their own side's edge of the board. */
 const BORDER_TOP = -0.24;
-const BORDER_Z = 4.45;
+const BORDER_Z = 4.1;
 /** Full-size pieces: widest gap between them, and the row length they are squeezed into. */
 const BORDER_STEP = 0.85;
-const BORDER_ROW = 8.4;
+const BORDER_ROW = 7.4;
 /** The model's knight points along its own X; this turns it to face the opponent. */
 const KNIGHT_TURN = -Math.PI / 2;
 /** Seconds a piece takes to cross the board. */
@@ -158,14 +160,15 @@ export const createBoardScene = (
   const textures: CanvasTexture[] = [];
   const painted = (map: CanvasTexture, reflect: number) => {
     textures.push(map);
-    return new MeshPhysicalMaterial({ map, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.15, envMapIntensity: reflect });
+    return new MeshPhysicalMaterial({ map, roughness: 0.48, clearcoat: 0.18, clearcoatRoughness: 0.4, envMapIntensity: reflect });
   };
   // A few different nebulae, dealt out across the light squares.
   const nebulae = palette.look ? Array.from({ length: 5 }, () => painted(boardTexture(palette.look!, false), palette.reflect[0])) : [];
-  const light = palette.look ? nebulae[0] : surface(palette.light, 0.25, 1, palette.reflect[0]);
+  const light = palette.look ? nebulae[0] : surface(palette.light, 0.42, 0.22, palette.reflect[0]);
   const shades = palette.look ? Array.from({ length: 5 }, () => painted(boardTexture(palette.look!, true), palette.reflect[1])) : [];
-  const dark = palette.look ? shades[0] : surface(palette.dark, 0.35, 0.15, palette.reflect[1]);
-  const frame = surface(palette.frame, 0.4, 0.1, palette.reflect[2]);
+  const dark = palette.look ? shades[0] : surface(palette.dark, 0.46, 0.12, palette.reflect[1]);
+  const frame = surface(palette.frame, 0.48, 0.08, palette.reflect[2]);
+  let boardModel: Group | null = null;
   const finish = ({ color, metalness, roughness, clearcoat, opacity }: Finish) =>
     new MeshPhysicalMaterial({ color: new Color(color), metalness, roughness, clearcoat, clearcoatRoughness: 0.2, opacity: opacity ?? 1, transparent: (opacity ?? 1) < 1 });
   const whitePieces = finish(PIECE_SETS[pieces].w);
@@ -368,6 +371,20 @@ export const createBoardScene = (
       invalidate();
     },
 
+    setBoardModel: (loaded) => {
+      loaded.traverse((object) => {
+        if (!(object instanceof Mesh)) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach((material) => material.dispose());
+        object.material = frame;
+      });
+      loaded.position.y = -TILE_HEIGHT;
+      board.remove(rim);
+      board.add(loaded);
+      boardModel = loaded;
+      invalidate();
+    },
+
     reset: (cells) => {
       clearPieces();
       cells.forEach((cell) => spawn(cell.type, cell.color, cell.square));
@@ -477,6 +494,11 @@ export const createBoardScene = (
       observer.disconnect();
       controls.dispose();
       if (model) disposeChessModel(model);
+      if (boardModel) {
+        boardModel.traverse((object) => {
+          if (object instanceof Mesh) object.geometry.dispose();
+        });
+      }
       discGeometries.forEach((geometry) => geometry.dispose());
       squareGeometry.dispose();
       paints.forEach((material) => material.dispose());

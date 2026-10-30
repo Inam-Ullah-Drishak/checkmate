@@ -337,3 +337,7 @@ the skill's canonical values, not tuned against numbers from this scene — run
 
 [[system-overview]] · [[tech-stack]] · [[design-system]] · [[optimize-3d-scene]] ·
 [[components/common]] · [[decisions-log]]
+
+## Piece shape "set2020" (2026-10-30)
+
+`src/lib/chess/set-2020.ts` loads `public/assets/chess-set-2020.3ds` with `TDSLoader` and bakes it into a `ChessModel` (cached promise). `buildShapeModel` in `piece-shapes.ts` is async because of it; callers are `board-3d.tsx` and `piece-previews.ts`. See the changelog entry of 2026-10-30.

@@ -18,8 +18,8 @@ export const LEVELS: Level[] = ["easy", "medium", "hard", "master", "grandmaster
 /** The player's team: white is silver, black is gold. */
 export type Team = "w" | "b";
 
-export type ThemeId = "classic" | "wood" | "marble" | "ocean" | "slate" | "rose" | "violet" | "sunset" | "cosmos" | "ice" | "blossom" | "sea" | "leaf";
-export const THEMES: ThemeId[] = ["classic", "wood", "marble", "ocean", "slate", "rose", "violet", "sunset", "cosmos", "ice", "blossom", "sea", "leaf"];
+export type ThemeId = "classic" | "wood" | "marble" | "ocean" | "slate" | "rose" | "violet" | "sunset" | "cosmos" | "ice" | "blossom" | "sea" | "leaf" | "mahogany";
+export const THEMES: ThemeId[] = ["classic", "wood", "marble", "ocean", "slate", "rose", "violet", "sunset", "cosmos", "ice", "blossom", "sea", "leaf", "mahogany"];
 
 export interface Settings {
   level: Level;

@@ -1,6 +1,6 @@
 ---
 tags: [frontend, stable]
-updated: 2026-07-31
+updated: 2026-10-30
 ---
 
 # Catalog — Common Components
@@ -39,6 +39,14 @@ Zustand store.
 > Its removal is also what made [[home-hero]]'s entrance animations safe: the
 > panel was the one `position: fixed` descendant of `<main>`, so nothing under
 > `<main>` could carry a transform without displacing it.
+
+## Board3D — `board-3d/`
+
+The playable board on `/play`. Its frame is exported from `Chessboard.blend` to
+`public/assets/chessboard.glb`; `board-model.ts` loads it and `board-scene.ts`
+applies the selected theme's frame material. The 64 square meshes stay in
+three.js so theme textures, highlights and square picking remain independent
+of the Blender model.
 
 ## Cursor3D — `cursor-3d/`
 

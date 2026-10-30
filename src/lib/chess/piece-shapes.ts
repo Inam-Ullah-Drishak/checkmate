@@ -21,10 +21,11 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
+import { loadSet2020 } from "@/lib/chess/set-2020";
 import type { ChessModel, ChessPart } from "@/lib/scene/chess-model";
 
-export type ShapeId = "classic" | "modern" | "twisted" | "vase" | "stepped" | "column" | "hourglass" | "faceted";
-export const SHAPE_IDS: ShapeId[] = ["classic", "modern", "twisted", "vase", "stepped", "column", "hourglass", "faceted"];
+export type ShapeId = "classic" | "modern" | "twisted" | "vase" | "stepped" | "column" | "hourglass" | "faceted" | "set2020";
+export const SHAPE_IDS: ShapeId[] = ["classic", "modern", "twisted", "vase", "stepped", "column", "hourglass", "faceted", "set2020"];
 export const SHAPE_LABEL: Record<ShapeId, string> = {
   classic: "Classic",
   modern: "Modern (smooth, tapered)",
@@ -34,6 +35,7 @@ export const SHAPE_LABEL: Record<ShapeId, string> = {
   column: "Column (ringed stem)",
   hourglass: "Hourglass",
   faceted: "Faceted (angular)",
+  set2020: "Chess set 2020 (3DS model)",
 };
 
 interface Style {
@@ -51,7 +53,7 @@ interface Style {
   /** Obelisk bodies with pyramid tops, a sun disc for the queen and an ankh for the king. */
   egypt?: boolean;
 }
-const STYLES: Record<Exclude<ShapeId, "classic">, Style> = {
+const STYLES: Record<Exclude<ShapeId, "classic" | "set2020">, Style> = {
   modern: { stem: "cone", width: 1, sides: 32 },
   twisted: { stem: "twist", width: 1, sides: 32 },
   vase: { stem: "vase", width: 1, sides: 32 },
@@ -241,8 +243,9 @@ const build = (kind: Kind, { stem, width, sides, crown, pagoda, roman, egypt }: 
   return { geometry, height: box3.max.y - box3.min.y, crossSection: Math.max(box3.max.x, box3.max.z) };
 };
 
-export const buildShapeModel = (shape: ShapeId, glb: ChessModel): ChessModel => {
+export const buildShapeModel = async (shape: ShapeId, glb: ChessModel): Promise<ChessModel> => {
   if (shape === "classic") return glb;
+  if (shape === "set2020") return loadSet2020();
   const style = STYLES[shape];
   const pawn = build("p", style);
   return {

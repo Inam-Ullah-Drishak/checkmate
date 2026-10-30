@@ -66,7 +66,7 @@ const leaf = (g: CanvasRenderingContext2D, rgb: string, alpha: number, length: n
 /** Thin branching frost lines. */
 const frost = (g: CanvasRenderingContext2D, rgb: string, alpha: number, count: number): void => {
   g.strokeStyle = `rgba(${rgb},${alpha})`;
-  g.lineWidth = 1.2;
+  g.lineWidth = 0.8;
   for (let k = 0; k < count; k += 1) {
     const x = Math.random() * SIZE;
     const y = Math.random() * SIZE;
@@ -89,7 +89,7 @@ const frost = (g: CanvasRenderingContext2D, rgb: string, alpha: number, count: n
 /** Wavy lines, like ripples or sand. */
 const waves = (g: CanvasRenderingContext2D, rgb: string, alpha: number, count: number): void => {
   g.strokeStyle = `rgba(${rgb},${alpha})`;
-  g.lineWidth = 1.5;
+  g.lineWidth = 1;
   for (let k = 0; k < count; k += 1) {
     const y = (k / count) * SIZE + between(-6, 6);
     const phase = Math.random() * TAU;
@@ -105,47 +105,47 @@ const waves = (g: CanvasRenderingContext2D, rgb: string, alpha: number, count: n
 };
 
 const PAINT: Record<BoardLook, Paint> = {
-  // Resin galaxy: purple, pink and blue clouds with stars; the dark squares are the same, much deeper.
+  // Muted nebula colors keep the galaxy character without obscuring pieces.
   galaxy: (g, deep) => {
-    fill(g, deep ? "#020107" : "#140b2e");
-    const clouds = ["120,60,220", "235,80,185", "50,150,255", "160,95,255", "70,200,255"];
-    for (let k = 0; k < 10; k += 1) cloud(g, clouds[k % clouds.length], deep ? 0.11 : 0.7, [60, 150]);
-    specks(g, 110, "255,255,255", deep ? [0.15, 0.65] : [0.5, 1], [0.6, 2]);
+    fill(g, deep ? "#211f31" : "#47405f");
+    const clouds = ["139,119,178", "171,111,151", "94,133,173"];
+    for (let k = 0; k < 5; k += 1) cloud(g, clouds[k % clouds.length], 0.16, [70, 145]);
+    specks(g, 35, "229,222,244", [0.2, 0.45], [0.6, 1.5]);
   },
-  // Frozen lake: frosted white-blue, with frost ferns and sparkle; the dark squares are deep ice.
+  // Soft frost detail, with a clear difference between pale and deep ice.
   ice: (g, deep) => {
-    fill(g, deep ? "#1d4a78" : "#e6f3fb");
-    for (let k = 0; k < 8; k += 1) cloud(g, deep ? "90,160,225" : "170,210,240", deep ? 0.4 : 0.5, [50, 120]);
-    frost(g, deep ? "190,225,255" : "255,255,255", deep ? 0.35 : 0.9, 22);
-    specks(g, 60, "255,255,255", [0.5, 1], [0.8, 2.2]);
+    fill(g, deep ? "#58788d" : "#d5e1e6");
+    for (let k = 0; k < 4; k += 1) cloud(g, deep ? "139,178,197" : "255,255,255", 0.13, [55, 120]);
+    frost(g, deep ? "205,224,233" : "126,163,180", 0.18, 12);
+    specks(g, 24, "255,255,255", [0.2, 0.45], [0.6, 1.4]);
   },
-  // Blossom: pale pink with petals; the dark squares are fresh green leaves with a few petals.
+  // Restrained petals and foliage keep the floral theme subtle at board scale.
   blossom: (g, deep) => {
-    fill(g, deep ? "#2f6a46" : "#fbe7ee");
-    for (let k = 0; k < 8; k += 1) cloud(g, deep ? "70,150,90" : "255,190,210", deep ? 0.45 : 0.5, [50, 110]);
-    for (let k = 0; k < (deep ? 14 : 22); k += 1) {
-      leaf(g, deep ? "50,120,70" : `255,${between(170, 215)},${between(195, 225)}`, deep ? 0.7 : 0.85, between(9, 18), false);
+    fill(g, deep ? "#65806b" : "#e8dadd");
+    for (let k = 0; k < 4; k += 1) cloud(g, deep ? "127,157,126" : "212,162,176", 0.14, [50, 100]);
+    for (let k = 0; k < (deep ? 8 : 6); k += 1) {
+      leaf(g, deep ? "54,105,72" : "190,123,145", 0.32, between(8, 14), false);
     }
-    if (deep) for (let k = 0; k < 8; k += 1) leaf(g, "255,205,222", 0.85, between(6, 11), false);
+    if (deep) for (let k = 0; k < 4; k += 1) leaf(g, "235,195,205", 0.42, between(5, 9), false);
   },
-  // Beach: warm sand with fine grain; the dark squares are the sea with rolling wave lines.
+  // Warm sand and soft surf lines, with sparse grain for texture.
   sea: (g, deep) => {
-    fill(g, deep ? "#145d8a" : "#f2e0b5");
-    for (let k = 0; k < 8; k += 1) cloud(g, deep ? "60,170,205" : "255,235,180", deep ? 0.45 : 0.55, [50, 110]);
+    fill(g, deep ? "#4b7889" : "#dfd3b8");
+    for (let k = 0; k < 4; k += 1) cloud(g, deep ? "111,163,174" : "249,227,186", 0.14, [50, 110]);
     if (deep) {
-      waves(g, "210,240,255", 0.4, 9);
-      specks(g, 50, "255,255,255", [0.3, 0.8], [0.8, 2]);
+      waves(g, "211,229,226", 0.2, 6);
+      specks(g, 24, "255,255,255", [0.2, 0.45], [0.6, 1.4]);
     } else {
-      specks(g, 380, "170,130,80", [0.2, 0.6], [0.6, 1.4]);
-      waves(g, "205,170,110", 0.25, 4);
+      specks(g, 110, "147,119,80", [0.12, 0.28], [0.5, 1]);
+      waves(g, "186,159,117", 0.14, 4);
     }
   },
-  // Autumn: pale amber paper with fine veins; the dark squares are brown earth covered in fallen leaves.
+  // Amber and chestnut with a few subdued leaf and vein details.
   leaf: (g, deep) => {
-    fill(g, deep ? "#3a1f0e" : "#f3dcae");
-    for (let k = 0; k < 8; k += 1) cloud(g, deep ? "120,60,20" : "240,180,100", deep ? 0.5 : 0.5, [50, 120]);
-    const colors = ["214,84,28", "232,140,36", "190,52,36", "240,184,60"];
-    for (let k = 0; k < (deep ? 20 : 8); k += 1) leaf(g, colors[k % colors.length], deep ? 0.85 : 0.5, between(10, 20), true);
+    fill(g, deep ? "#765641" : "#dfcfaa");
+    for (let k = 0; k < 4; k += 1) cloud(g, deep ? "153,106,73" : "240,203,139", 0.15, [50, 115]);
+    const colors = ["176,93,57", "191,132,62", "155,74,57"];
+    for (let k = 0; k < (deep ? 10 : 5); k += 1) leaf(g, colors[k % colors.length], 0.34, between(8, 15), true);
   },
 };
 

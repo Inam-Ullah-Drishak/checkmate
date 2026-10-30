@@ -9,6 +9,18 @@ Chronological log of notable changes to the project. Newest first.
 This is a human-curated log — not a mirror of `git log`.
 
 
+## 2026-10-30 — Refined all playable board theme colors
+
+Updated every `BOARD_THEMES` palette with softer, coordinated square and frame colors. Reduced gloss across board materials and simplified the galaxy, ice, blossom, beach and autumn textures so squares stay readable beneath the pieces.
+
+## 2026-10-30 — Blender board frame across all game themes
+
+Exported the `Chess Board` mesh from `Chessboard.blend` to `public/assets/chessboard.glb` and use it as the playable board's frame in every theme. The procedural squares remain in three.js, keeping theme colors/textures, picking and highlights intact. See ADR-0026.
+
+## 2026-10-30 — "Chess set 2020" piece shape and Mahogany board (to test)
+
+New piece shape `set2020` (Settings → Piece shape): the six pieces come from `public/assets/chess-set-2020.3ds`, read at runtime by `src/lib/chess/set-2020.ts` (three's `TDSLoader`, Z-up rotated to Y-up, baked into the `ChessModel` layout; file textures ignored, the piece design supplies materials). Mesh names in the file are fixed in `NAMES` (guessed from shape, not yet checked by eye); `KNIGHT_TURN` is 0 and still needs tuning. `buildShapeModel` is now async. New board look `mahogany` ("Mahogany & ivory"), plain colours, in `board-themes.ts`/`storage.ts`. The file has no board. Not verified in a browser (the browser tool could not open the page); `tsc` is clean.
+
 ## 2026-10-28 — Two cards per row on phones
 
 Settings picture cards (`Picker` in `board-3d/previews.tsx`) and the Rules cards (`game.tsx`) are `grid-cols-2` below `sm`, with a shorter preview (`h-28`), smaller text (`text-xs`) and less padding; wide Rules cards span both columns. The site-theme preview ("Play chess") is also smaller on phones. From `sm` up they are as before.
